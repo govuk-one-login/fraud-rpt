@@ -1,0 +1,60 @@
+name: Check Code Quality
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}-quality-checkov
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+permissions: read-all
+
+jobs:
+  run-pre-commit:
+    if: ${{ github.event.pull_request.draft == false && github.actor != 'dependabot[bot]' }}
+    name: Run pre-commit Job
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PRECOMMIT_OUTPUT: precommit.output
+    steps:
+      - name: Pull repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11.6'
+          cache-dependency-path: ./.github/workflows
+          cache: 'pip'
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Run pre-commit
+        id: run-pre-commit
+        env:
+          OUTPUT_FILE: ${{ runner.temp }}/${{ env.PRECOMMIT_OUTPUT }}
+        run: pre-commit run --hook-stage push --all-files | tee "$OUTPUT_FILE"
+
+      - name: Report pre-commit results
+        if: ${{ failure() && steps.run-pre-commit.outcome == 'failure' }}
+        uses: ##TO QUESTION##
+        with:
+          file-path: ${{ runner.temp }}/${{ env.PRECOMMIT_OUTPUT }}
+
+  run-checkov:
+    if: ${{ github.event.pull_request.draft == false && github.actor != 'dependabot[bot]' }}
+    name: Run Checkov Job
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check GHA workflows
+        uses: ##TO QUESTION##
+        with:
+          path: .github

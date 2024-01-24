@@ -1,0 +1,35 @@
+name: Deploy Branch
+
+on: workflow_dispatch
+
+permissions: read-all
+
+jobs:
+  run-build-action:
+    name: Run Build Action
+    uses: ./.github/workflows/build.yaml
+    permissions:
+      id-token: write
+      contents: read
+      packages: read
+    with:
+      environment: development
+      sam-template-file: template-rpt.yaml
+      region: ${{ vars.AWS_REGION }}
+    secrets:
+      aws-role-arn: ${{ secrets.GH_ACTIONS_ROLE_ARN }}
+
+  run-deploy-to-aws-action:
+    name: Run Deploy To AWS Action
+    uses: ./.github/workflows/deploy-to-aws.yaml
+    needs: run-build-action
+    permissions:
+      id-token: write
+      contents: read
+    with:
+      region: ${{ vars.AWS_REGION }}
+      stack-name-length: ${{ vars.STACK_NAME_LENGTH }}
+      stack-name-prefix: db-rp
+    secrets:
+      aws-role-arn: ${{ secrets.GH_ACTIONS_ROLE_ARN }}
+      sam-deployment-bucket: ${{ secrets.ARTIFACT_BUCKET_NAME }}

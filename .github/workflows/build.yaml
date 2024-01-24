@@ -1,0 +1,76 @@
+name: Build SAM Artifact
+
+on:
+  workflow_call:
+    inputs:
+      environment: { required: true, type: string }
+      region: { required: true, type: string }
+      sam-template-file: { required: false, type: string }
+    secrets:
+      aws-role-arn: { required: true }
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}-build
+  cancel-in-progress: true
+
+permissions:
+  id-token: write
+  contents: read
+  packages: read
+
+jobs:
+  build-job:
+    if: ${{ github.event.pull_request.draft == false && github.actor != 'dependabot[bot]' }}
+    name: Build Job
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Pull repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          registry-url: 'https://npm.pkg.github.com/'
+          scope: '@govuk-one-login' ##TO QUESTION##
+          cache: npm
+          always-auth: true
+
+      - name: Install ESbuild
+        run: npm install -g esbuild@0.17.18
+
+      - name: Install Dependencies
+        run: npm install
+        env:
+          NODE_AUTH_TOKEN: ${{ github.token }}
+
+      - name: Cache SAM Dependencies
+        uses: actions/cache@v3
+        with:
+          key: cache-SAM-dependencies-${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: cache-SAM-dependencies-${{ runner.os }}-gradle-
+          path: |
+            .aws-sam
+            **/build
+
+      - name: Prevent SAM From Runnning Unit Tests
+        run: rm -Rf -- *.test.*
+
+      - name: Build SAM Application
+        uses: ##TO QUESTION##
+        with:
+          disable-cache: true
+          enable-beta-features: true
+          sam-template-file: ${{ inputs.sam-template-file }}
+          aws-role-arn: ${{ secrets.aws-role-arn }}
+          aws-region: ${{ inputs.region }}
+
+      - name: Upload SAM Build Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: fpad-functions
+          retention-days: 3
+          path: |
+            **/.aws-sam/build
