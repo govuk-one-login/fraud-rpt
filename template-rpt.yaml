@@ -58,8 +58,8 @@ Globals:
       Variables:
         TRANSMITTER_QUEUE_URL: !Ref SETTransmitterQueue
         LOG_LEVEL: INFO
-        POWERTOOLS_SERVICE_NAME: InboundSSF-mock-rp
-        POWERTOOLS_METRICS_NAMESPACE: !Sub ${Environment}-InboundSSF-mock-rp
+        POWERTOOLS_SERVICE_NAME: InboundSSF-rp-transmitter
+        POWERTOOLS_METRICS_NAMESPACE: !Sub ${Environment}-InboundSSF-rp-transmitter
 
 Mappings:
   ##############################################################
@@ -102,7 +102,7 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       Name: !Sub ${Environment}-${AWS::StackName}-service-activation-gateway
-      Description: API Gateway to start Mock RP Service
+      Description: API Gateway to start RP-transmitter service
       StageName: !Ref Environment
       TracingEnabled: true
       CacheClusterEnabled: true
