@@ -1,0 +1,118 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Application for inbound messages from relying parties.
+
+Parameters:
+  Environment:
+    Description: Name of Environment to deploy to
+    Type: String
+    Default: build
+    AllowedValues:
+      - development
+      - build
+      - staging
+  CodeSigningConfigArn:
+    Type: String
+    Description: >
+      The ARN of the Code Signing Config to use, provided by the deployment pipeline
+    Default: 'none'
+  PermissionsBoundary:
+    Type: String
+    Description: >
+      The ARN of the permissions boundary to apply to any role created by the template
+    Default: 'none'
+  BranchName:
+    Type: String
+    Description: 'Name of the branch to be deployed'
+    Default: 'main'
+
+#         ASK DAN  (!Ref, !Equals, !Not, what are they?)
+
+Conditions:
+  UseCodeSigning: !Not [!Equals [!Ref CodeSigningConfigArn, 'none']]
+  UsePermissionsBoundary: !Not [!Equals [!Ref PermissionsBoundary, 'none']]
+  onMainBranch: !Equals [!Ref 'BranchName', 'main']
+  IsDevOrBuildEnv: !Or
+    - !Equals [!Ref Environment, 'development']
+    - !Equals [!Ref Environment, 'build']
+  BuildPairwiseResources: !And
+    - Condition: onMainBranch
+    - Condition: IsDevOrBuildEnv
+
+#         ASK DAN about powertool and ::noValue
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Runtime: nodejs18.x
+    CodeSigningConfigArn: !If
+      - UseCodeSigning
+      - !Ref CodeSigningConfigArn
+      - !Ref AWS::NoValue
+    PermissionsBoundary: !If
+      - UsePermissionsBoundary
+      - !Ref PermissionsBoundary
+      - !Ref AWS::NoValue
+    Timeout: 10
+    Environment:
+      Variables:
+        TRANSMITTER_QUEUE_URL: !Ref SETTransmitterQueue
+        LOG_LEVEL: INFO
+        POWERTOOLS_SERVICE_NAME: InboundSSF-mock-rp
+        POWERTOOLS_METRICS_NAMESPACE: !Sub ${Environment}-InboundSSF-mock-rp
+
+Mappings:
+  ##############################################################
+  # JWS Signing         
+  # ASK DAN what to do with ARN?
+  ##############################################################
+  JWSSignRoleARNs:
+    Environment:
+      development: 'arn:aws:iam::604477301065:role/JWS-Sign-Role'
+      build: 'arn:aws:iam::250353618339:role/JWS-Sign-Role'
+      staging: 'arn:aws:iam::861348360548:role/JWS-Sign-Role'
+
+  JWSSignKMSARNs:
+    Environment:
+      development: 'arn:aws:kms:eu-west-2:604477301065:key/89a56ae8-0cc4-451f-ab40-7a712b11c27f'
+      build: 'arn:aws:kms:eu-west-2:250353618339:key/6d4d235d-331f-438b-8404-83700ca78e18'
+      staging: 'arn:aws:kms:eu-west-2:861348360548:key/b3b5e606-007d-4756-b612-dfdc67403d0e'
+
+  ##############################################################
+  # JWE Encryption (to be removed once JWE.encryptCEK uses outbound GetPublicKey endpoint)         
+  # ASK DAN include + what to do with ARN?
+  ##############################################################
+  JWEGetPublicKeyRoleARNs:
+    Environment:
+      development: 'arn:aws:iam::604477301065:role/JWE-Get-Public-Key-Role'
+      build: 'arn:aws:iam::250353618339:role/JWE-Get-Public-Key-Role'
+      staging: 'arn:aws:iam::861348360548:role/JWE-Get-Public-Key-Role'
+
+  JWEGetPublicKeyKMSARNs:
+    Environment:
+      development: 'arn:aws:kms:eu-west-2:604477301065:key/0c5c7459-ba27-46cf-afe1-281ac95fc21a'
+      build: 'arn:aws:kms:eu-west-2:250353618339:key/4dda4421-1865-4c7d-9784-85ed4e45158d'
+      staging: 'arn:aws:kms:eu-west-2:861348360548:key/902f6d2e-5787-4257-a0a9-155fb16e675b'
+
+Resources:
+  ##############################################################
+  # Activation API Gateway                #         ASK DAN about logigng
+  ##############################################################
+  ServiceActivationApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub ${Environment}-${AWS::StackName}-service-activation-gateway
+      Description: API Gateway to start Mock RP Service
+      StageName: !Ref Environment
+      TracingEnabled: true
+      CacheClusterEnabled: true
+      CacheClusterSize: '0.5'
+      AccessLogSetting:
+        DestinationArn: !GetAtt ServiceActivationApiLogs.Arn
+        Format: '{"requestTime":"$context.requestTime","requestId":"$context.requestId","httpMethod":"$context.httpMethod","path":"$context.path","resourcePath":"$context.resourcePath","status":$context.status,"responseLatency":$context.responseLatency}'
+
+  ServiceActivationApiLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      KmsKeyId: !GetAtt LogKeyStore.Arn
+      RetentionInDays: 30
