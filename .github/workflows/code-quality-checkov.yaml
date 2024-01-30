@@ -29,9 +29,9 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11.6'
+          python-version: "3.11.6"
           cache-dependency-path: ./.github/workflows
-          cache: 'pip'
+          cache: "pip"
 
       - name: Install pre-commit
         run: pip install pre-commit

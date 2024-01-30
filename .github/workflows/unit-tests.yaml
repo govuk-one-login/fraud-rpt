@@ -25,9 +25,9 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
-          registry-url: 'https://npm.pkg.github.com/'
+          registry-url: "https://npm.pkg.github.com/"
           cache: npm
-          scope: '@govuk-one-login'
+          scope: "@govuk-one-login"
           always-auth: true
 
       - name: Run Tests
