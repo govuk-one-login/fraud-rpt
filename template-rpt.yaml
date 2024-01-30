@@ -27,8 +27,6 @@ Parameters:
     Description: 'Name of the branch to be deployed'
     Default: 'main'
 
-#         ASK DAN  (!Ref, !Equals, !Not, what are they?)
-
 Conditions:
   UseCodeSigning: !Not [!Equals [!Ref CodeSigningConfigArn, 'none']]
   UsePermissionsBoundary: !Not [!Equals [!Ref PermissionsBoundary, 'none']]
@@ -40,7 +38,6 @@ Conditions:
     - Condition: onMainBranch
     - Condition: IsDevOrBuildEnv
 
-#         ASK DAN about powertool and ::noValue
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
@@ -64,7 +61,6 @@ Globals:
 Mappings:
   ##############################################################
   # JWS Signing         
-  # ASK DAN what to do with ARN?
   ##############################################################
   JWSSignRoleARNs:
     Environment:
@@ -78,25 +74,11 @@ Mappings:
       build: 'arn:aws:kms:eu-west-2:250353618339:key/6d4d235d-331f-438b-8404-83700ca78e18'
       staging: 'arn:aws:kms:eu-west-2:861348360548:key/b3b5e606-007d-4756-b612-dfdc67403d0e'
 
-  ##############################################################
-  # JWE Encryption (to be removed once JWE.encryptCEK uses outbound GetPublicKey endpoint)         
-  # ASK DAN include + what to do with ARN?
-  ##############################################################
-  JWEGetPublicKeyRoleARNs:
-    Environment:
-      development: 'arn:aws:iam::604477301065:role/JWE-Get-Public-Key-Role'
-      build: 'arn:aws:iam::250353618339:role/JWE-Get-Public-Key-Role'
-      staging: 'arn:aws:iam::861348360548:role/JWE-Get-Public-Key-Role'
 
-  JWEGetPublicKeyKMSARNs:
-    Environment:
-      development: 'arn:aws:kms:eu-west-2:604477301065:key/0c5c7459-ba27-46cf-afe1-281ac95fc21a'
-      build: 'arn:aws:kms:eu-west-2:250353618339:key/4dda4421-1865-4c7d-9784-85ed4e45158d'
-      staging: 'arn:aws:kms:eu-west-2:861348360548:key/902f6d2e-5787-4257-a0a9-155fb16e675b'
 
 Resources:
   ##############################################################
-  # Activation API Gateway                #         ASK DAN about logigng
+  # Activation API Gateway                
   ##############################################################
   ServiceActivationApiGateway:
     Type: AWS::Serverless::Api
