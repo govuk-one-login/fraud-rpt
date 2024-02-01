@@ -1,0 +1,425 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Application for inbound messages from relying parties.
+
+Parameters:
+  Environment:
+    Description: Name of Environment to deploy to
+    Type: String
+    Default: build
+    AllowedValues:
+      - development
+      - build
+      - staging
+  CodeSigningConfigArn:
+    Type: String
+    Description: >
+      The ARN of the Code Signing Config to use, provided by the deployment pipeline
+    Default: 'none'
+  PermissionsBoundary:
+    Type: String
+    Description: >
+      The ARN of the permissions boundary to apply to any role created by the template
+    Default: 'none'
+  BranchName:
+    Type: String
+    Description: 'Name of the branch to be deployed'
+    Default: 'main'
+
+Conditions:
+  UseCodeSigning: !Not [!Equals [!Ref CodeSigningConfigArn, 'none']]
+  UsePermissionsBoundary: !Not [!Equals [!Ref PermissionsBoundary, 'none']]
+  onMainBranch: !Equals [!Ref 'BranchName', 'main']
+  IsDevOrBuildEnv: !Or
+    - !Equals [!Ref Environment, 'development']
+    - !Equals [!Ref Environment, 'build']
+  BuildPairwiseResources: !And
+    - Condition: onMainBranch
+    - Condition: IsDevOrBuildEnv
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Runtime: nodejs18.x
+    CodeSigningConfigArn: !If
+      - UseCodeSigning
+      - !Ref CodeSigningConfigArn
+      - !Ref AWS::NoValue
+    PermissionsBoundary: !If
+      - UsePermissionsBoundary
+      - !Ref PermissionsBoundary
+      - !Ref AWS::NoValue
+    Timeout: 10
+    Environment:
+      Variables:
+        TRANSMITTER_QUEUE_URL: !Ref SETTransmitterQueue
+        LOG_LEVEL: INFO
+        POWERTOOLS_SERVICE_NAME: InboundSSF-rp-transmitter
+        POWERTOOLS_METRICS_NAMESPACE: !Sub ${Environment}-InboundSSF-rp-transmitter
+
+Mappings:
+  ##############################################################
+  # JWS Signing         
+  ##############################################################
+  JWSSignRoleARNs:
+    Environment:
+      development: 'arn:aws:iam::604477301065:role/JWS-Sign-Role'
+      build: 'arn:aws:iam::250353618339:role/JWS-Sign-Role'
+      staging: 'arn:aws:iam::861348360548:role/JWS-Sign-Role'
+
+  JWSSignKMSARNs:
+    Environment:
+      development: 'arn:aws:kms:eu-west-2:604477301065:key/89a56ae8-0cc4-451f-ab40-7a712b11c27f'
+      build: 'arn:aws:kms:eu-west-2:250353618339:key/6d4d235d-331f-438b-8404-83700ca78e18'
+      staging: 'arn:aws:kms:eu-west-2:861348360548:key/b3b5e606-007d-4756-b612-dfdc67403d0e'
+
+
+
+Resources:
+  ##############################################################
+  # Activation API Gateway                
+  ##############################################################
+  ServiceActivationApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub ${Environment}-${AWS::StackName}-service-activation-gateway
+      Description: API Gateway to start RP-transmitter service
+      StageName: !Ref Environment
+      TracingEnabled: true
+      CacheClusterEnabled: true
+      CacheClusterSize: '0.5'
+      AccessLogSetting:
+        DestinationArn: !GetAtt ServiceActivationApiLogs.Arn
+        Format: '{"requestTime":"$context.requestTime","requestId":"$context.requestId","httpMethod":"$context.httpMethod","path":"$context.path","resourcePath":"$context.resourcePath","status":$context.status,"responseLatency":$context.responseLatency}'
+
+  ServiceActivationApiLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      KmsKeyId: !GetAtt LogKeyStore.Arn
+      RetentionInDays: 30
+
+##############################################################
+  # SET Generator Lambda
+  ##############################################################
+  GeneratorLambda:
+    #checkov:skip=CKV_AWS_116: Lambda level DLQs not supported with SQS / Api Gateway Triggers. DLQs at Queue level instead
+    #checkov:skip=CKV_AWS_117: VPC does not need to be configured currently for rp transmitter, TBC
+    #checkov:skip=CKV_AWS_173: Environment Variable not Sensitive
+    Type: AWS::Serverless::Function
+    Properties:
+      Tracing: Active
+      Environment:
+        Variables:
+          LAMBDA_NAME: GeneratorLambda
+          ENVIRONMENT: !Sub ${Environment}
+      Architectures:
+        - arm64
+      FunctionName: !Sub ${Environment}-${AWS::StackName}-set-generator
+      Description: Parses configurations from endpoint. Generates messages and sends in batches to Transmitter Lambda.
+      CodeUri: src/lambdas/GeneratorLambda
+      Handler: handler.handler
+      MemorySize: 128
+      ReservedConcurrentExecutions: 10
+      Events:
+        ActivationApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ServiceActivationApiGateway
+            Path: / #TBC
+            Method: POST
+      Policies:
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt SETTransmitterQueue.QueueName
+        - KMSEncryptPolicy:
+            KeyId: !Ref QueueKeyStore
+        - KMSDecryptPolicy:
+            KeyId: !Ref QueueKeyStore
+        - SSMParameterWithSlashPrefixReadPolicy:
+            ParameterName: !Sub '/${Environment}/ssf/SSFUserPoolClientId'
+        - SSMParameterWithSlashPrefixReadPolicy:
+            ParameterName: !Sub '/${Environment}/ssf/SSFUserPoolId'
+        - Statement:
+            Sid: allowDescribeUserPool
+            Effect: Allow
+            Action:
+              - cognito-idp:DescribeUserPoolClient
+            Resource: '*'
+        - Statement:
+            Sid: queueKeyPermissions
+            Effect: Allow
+            Action:
+              - kms:GenerateDataKey
+            Resource: !GetAtt QueueKeyStore.Arn
+
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Target: 'es2020'
+        EntryPoints:
+          - handler.ts
+
+  SETGeneratorLambdaLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${GeneratorLambda}'
+      KmsKeyId: !GetAtt LogKeyStore.Arn
+      RetentionInDays: 30
+
+  ##############################################################
+  # SET Transmitter Queue
+  ##############################################################
+  SETTransmitterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsMasterKeyId: !Ref QueueKeyStore
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt SETTransmitterDeadLetterQueue.Arn
+        maxReceiveCount: 5
+
+  ##############################################################
+  # SET Transmitter Dead Letter Queue
+  ##############################################################
+  SETTransmitterDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsMasterKeyId: !Ref QueueKeyStore
+
+  ##############################################################
+  # SET Transmitter Lambda
+  ##############################################################
+  TransmitterLambda:
+    #checkov:skip=CKV_AWS_116: Lambda level DLQs not supported with SQS / Api Gateway Triggers. DLQs at Queue level instead
+    #checkov:skip=CKV_AWS_117: VPC does not need to be configured currently for rp transmitter, TBC
+    #checkov:skip=CKV_AWS_173: Environment Variable not Sensitive
+    Type: AWS::Serverless::Function
+    Properties:
+      Tracing: Active
+      Environment:
+        Variables:
+          LAMBDA_NAME: TransmitterLambda
+          JWS_SIGN_ARN:
+            !FindInMap [JWSSignKMSARNs, Environment, !Ref Environment]
+          JWE_PUBLIC_KEY_ARN:
+            !FindInMap [JWEGetPublicKeyKMSARNs, Environment, !Ref Environment]
+          ENVIRONMENT: !Sub ${Environment}
+      Architectures:
+        - arm64
+      FunctionName: !Sub ${Environment}-${AWS::StackName}-set-transmitter
+      Description: Recieves messages from Generator Lambda via SQS. Creates and handles POST requests to SSF Endpoint.
+      CodeUri: src/lambdas/TransmitterLambda
+      Handler: handler.handler
+      ReservedConcurrentExecutions: 10
+      Events:
+        ValidatorQueueEvent:
+          Type: SQS
+          Properties:
+            Enabled: true
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
+            Queue: !GetAtt SETTransmitterQueue.Arn
+            BatchSize: 10
+      Policies:
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt SETTransmitterQueue.QueueName
+        - KMSEncryptPolicy:
+            KeyId: !Ref QueueKeyStore
+        - KMSDecryptPolicy:
+            KeyId: !Ref QueueKeyStore
+        - Statement:
+            Sid: queueKeyPermissions
+            Effect: Allow
+            Action:
+              - kms:GenerateDataKey
+            Resource: !GetAtt QueueKeyStore.Arn
+        - Statement:
+            Sid: KMSSignPermissions
+            Effect: Allow
+            Action:
+              - kms:Sign
+            Resource: !FindInMap [JWSSignKMSARNs, Environment, !Ref Environment]
+        - Statement:
+            Sid: KMSGetPublicKeyPermissions
+            Effect: Allow
+            Action:
+              - kms:GetPublicKey
+            Resource:
+              !FindInMap [JWEGetPublicKeyKMSARNs, Environment, !Ref Environment]
+        - Statement:
+            Sid: assumeKMSSignRole
+            Effect: Allow
+            Action:
+              - sts:AssumeRole
+            Resource:
+              !FindInMap [JWSSignRoleARNs, Environment, !Ref Environment]
+        - Statement:
+            Sid: assumeKMSGetPublicKeyRole
+            Effect: Allow
+            Action:
+              - sts:AssumeRole
+            Resource:
+              !FindInMap [
+                JWEGetPublicKeyRoleARNs,
+                Environment,
+                !Ref Environment,
+              ]
+        - SSMParameterWithSlashPrefixReadPolicy:
+            ParameterName: !Sub '/${Environment}/ssf/SSFUserPoolClientId'
+        - SSMParameterWithSlashPrefixReadPolicy:
+            ParameterName: !Sub '/${Environment}/ssf/SSFUserPoolId'
+        - Statement:
+            Sid: allowDescribeUserPool
+            Effect: Allow
+            Action:
+              - cognito-idp:DescribeUserPoolClient
+            Resource: '*'
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Target: 'es2020'
+        EntryPoints:
+          - handler.ts
+
+  SETTransmitterLambdaLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${TransmitterLambda}'
+      KmsKeyId: !GetAtt LogKeyStore.Arn
+      RetentionInDays: 30
+
+  ##############################################################
+  # Encryption Keys
+  ##############################################################
+  QueueKeyStore:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: Encryption key for Queues
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+
+  LogKeyStore:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: Encryption key for Logs
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+          - Effect: Allow
+            Principal:
+              Service: !Sub 'logs.${AWS::Region}.amazonaws.com'
+            Action: 'kms:*'
+            Resource: '*'
+
+
+  ##############################################################
+  # PublicKey Lambda
+  ##############################################################
+  PublicKeyLambda:
+    #checkov:skip=CKV_AWS_116: Lambda level DLQs not supported with SQS / Api Gateway Triggers. DLQs at Queue level instead
+    #checkov:skip=CKV_AWS_117: VPC does not need to be configured currently for rp transmitter, TBC
+    #checkov:skip=CKV_AWS_173: Environment Variable not Sensitive
+    Type: AWS::Serverless::Function
+    Properties:
+      Tracing: Active
+      Environment:
+        Variables:
+          LAMBDA_NAME: PublicKeyLambda
+          ENVIRONMENT: !Ref Environment
+      Architectures:
+        - arm64
+      FunctionName: !Sub ${Environment}-${AWS::StackName}-public-key
+      Description: Simulates an RP endpoint for serving their public key. Triggered by API Gateway requests. Fetches RP transmitter public key from AWS KMS for SET verification.
+      CodeUri: src/lambdas/PublicKeyLambda
+      Handler: handler.handler
+      MemorySize: 128
+      Role: !GetAtt PublicKeyLambdaExecutionRole.Arn
+      ReservedConcurrentExecutions: 10
+      Events:
+        ActivationApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ServiceActivationApiGateway
+            Path: /getPublicKey
+            Method: GET
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Target: 'es2020'
+        EntryPoints:
+          - handler.ts
+
+  PublicKeyLambdaLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${PublicKeyLambda}'
+      KmsKeyId: !GetAtt LogKeyStore.Arn
+      RetentionInDays: 30
+
+  ##############################################################
+  # PublicKeyLambda IAM Role
+  ##############################################################
+  PublicKeyLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${AWS::StackName}-pk-execution-role
+      PermissionsBoundary: !If
+        - UsePermissionsBoundary
+        - !Ref PermissionsBoundary
+        - !Ref AWS::NoValue
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: '/'
+
+  ##############################################################
+  # IAM Policy for PublicKeyLambda to access SSM Parameter
+  ##############################################################
+  GetPublicKeyParameterPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: GetPublicKeyParameterPolicy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: 'ssm:GetParameter'
+            Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Environment}/PublicKeyArn'
+      Roles:
+        - !Ref PublicKeyLambdaExecutionRole
+
+  GetPublicKMSKeyPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: GetPublicKMSKeyPolicy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: 'kms:GetPublicKey'
+            Resource: '*'
+      Roles:
+        - !Ref PublicKeyLambdaExecutionRole
+        
+        
