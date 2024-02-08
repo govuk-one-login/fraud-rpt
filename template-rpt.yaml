@@ -76,7 +76,7 @@ Mappings:
 
 Resources:
   ##############################################################
-  # Activation API Gateway                
+  # Activation API Gateway
   ##############################################################
   ServiceActivationApiGateway:
     Type: AWS::Serverless::Api
