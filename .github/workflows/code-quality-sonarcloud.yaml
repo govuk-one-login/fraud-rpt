@@ -1,0 +1,39 @@
+name: SonarCloud
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}-quality-sonar
+  cancel-in-progress: true
+
+permissions: read-all
+
+jobs:
+  sonarcloud:
+    if: ${{ github.event.pull_request.draft == false && github.actor != 'dependabot[bot]' }}
+    name: Run SonarCloud Job
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Install Dependancies
+        run: npm install
+
+      - name: Run Tests
+        run: |
+          npm ci
+          npm test
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Needed to get PR information, if any
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
