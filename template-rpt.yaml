@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  Application for mocking inbound messages from relying parties.
+  Application for inbound messages from relying parties.
 
 Parameters:
   Environment:
@@ -55,8 +55,8 @@ Globals:
       Variables:
         TRANSMITTER_QUEUE_URL: !Ref SETTransmitterQueue
         LOG_LEVEL: INFO
-        POWERTOOLS_SERVICE_NAME: InboundSSF-mock-rp
-        POWERTOOLS_METRICS_NAMESPACE: !Sub ${Environment}-InboundSSF-mock-rp
+        POWERTOOLS_SERVICE_NAME: InboundSSF-rp-transmitter
+        POWERTOOLS_METRICS_NAMESPACE: !Sub ${Environment}-InboundSSF-rp-transmitter
 
 Mappings:
   ##############################################################
@@ -64,30 +64,15 @@ Mappings:
   ##############################################################
   JWSSignRoleARNs:
     Environment:
-      development: "##TO QUESTION##"
-      build: "##TO QUESTION##"
-      staging: "##TO QUESTION##"
+      development: "arn:aws:iam::604477301065:role/JWS-Sign-Role"
+      build: "arn:aws:iam::250353618339:role/JWS-Sign-Role"
+      staging: "arn:aws:iam::861348360548:role/JWS-Sign-Role"
 
   JWSSignKMSARNs:
     Environment:
-      development: "##TO QUESTION##"
-      build: "##TO QUESTION##"
-      staging: "##TO QUESTION##"
-
-  ##############################################################
-  # JWE Encryption (to be removed once JWE.encryptCEK uses outbound GetPublicKey endpoint)
-  ##############################################################
-  JWEGetPublicKeyRoleARNs:
-    Environment:
-      development: "##TO QUESTION##"
-      build: "##TO QUESTION##"
-      staging: "##TO QUESTION##"
-
-  JWEGetPublicKeyKMSARNs:
-    Environment:
-      development: "##TO QUESTION##"
-      build: "##TO QUESTION##"
-      staging: "##TO QUESTION##"
+      development: "arn:aws:kms:eu-west-2:604477301065:key/89a56ae8-0cc4-451f-ab40-7a712b11c27f"
+      build: "arn:aws:kms:eu-west-2:250353618339:key/6d4d235d-331f-438b-8404-83700ca78e18"
+      staging: "arn:aws:kms:eu-west-2:861348360548:key/b3b5e606-007d-4756-b612-dfdc67403d0e"
 
 Resources:
   ##############################################################
@@ -97,7 +82,7 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       Name: !Sub ${Environment}-${AWS::StackName}-service-activation-gateway
-      Description: API Gateway to start Mock RP Service
+      Description: API Gateway to start RP-transmitter service
       StageName: !Ref Environment
       TracingEnabled: true
       CacheClusterEnabled: true
@@ -117,7 +102,7 @@ Resources:
   ##############################################################
   GeneratorLambda:
     #checkov:skip=CKV_AWS_116: Lambda level DLQs not supported with SQS / Api Gateway Triggers. DLQs at Queue level instead
-    #checkov:skip=CKV_AWS_117: VPC does not need to be configured currently for mock rp, TBC
+    #checkov:skip=CKV_AWS_117: VPC does not need to be configured currently for rp transmitter, TBC
     #checkov:skip=CKV_AWS_173: Environment Variable not Sensitive
     Type: AWS::Serverless::Function
     Properties:
@@ -204,7 +189,7 @@ Resources:
   ##############################################################
   TransmitterLambda:
     #checkov:skip=CKV_AWS_116: Lambda level DLQs not supported with SQS / Api Gateway Triggers. DLQs at Queue level instead
-    #checkov:skip=CKV_AWS_117: VPC does not need to be configured currently for mock rp, TBC
+    #checkov:skip=CKV_AWS_117: VPC does not need to be configured currently for rp transmitter, TBC
     #checkov:skip=CKV_AWS_173: Environment Variable not Sensitive
     Type: AWS::Serverless::Function
     Properties:
@@ -339,237 +324,11 @@ Resources:
             Resource: "*"
 
   ##############################################################
-  # EventBridgeRule
-  ##############################################################
-  EventRule:
-    Type: AWS::Events::Rule
-    Properties:
-      Description: Mock RP EventBridge Rule
-      ScheduleExpression: rate(5 minutes)
-      EventPattern:
-        source:
-          - "mock-rp-service"
-        detail-type:
-          - "Mock RP Service Trigger"
-        detail:
-          numMessages:
-            - 1
-          rpSplit:
-            - 1
-            - 0
-            - 0
-          eventTypeSplit:
-            accountPurged: [{ "numeric": ["=", 1] }]
-            accountCredentialChangeRequired: [{ "numeric": ["=", 1] }]
-            accountDisabled: [{ "numeric": ["=", 1] }]
-            accountEnabled: [{ "numeric": ["=", 1] }]
-            credentialCompromise: [{ "numeric": ["=", 1] }]
-            optIn: [{ "numeric": ["=", 1] }]
-            optOutInitiated: [{ "numeric": ["=", 1] }]
-            optOutCancelled: [{ "numeric": ["=", 1] }]
-            optOutEffective: [{ "numeric": ["=", 1] }]
-            recoveryActivated: [{ "numeric": ["=", 1] }]
-            recoveryInformationChanged: [{ "numeric": ["=", 1] }]
-            sessionsRevoked: [{ "numeric": ["=", 1] }]
-          errorRate:
-            - 0.1
-      Name: mock-rp-service-trigger
-      State: "ENABLED"
-      Targets:
-        - Arn:
-            !Join [
-              "",
-              [
-                "arn:aws:execute-api:",
-                !Ref AWS::Region,
-                ":",
-                !Ref AWS::AccountId,
-                ":",
-                !Ref ServiceActivationApiGateway,
-                "/",
-                !Ref Environment,
-                "/POST/",
-              ],
-            ]
-          Id: "ServiceActivationApiGateway"
-    Condition: onMainBranch
-
-  ##############################################################
-  # Replica TxMA Pairwise Table
-  # Mock Table used for Dev and Build
-  ##############################################################
-  PairwiseTableKeyStore:
-    Type: AWS::KMS::Key
-    Condition: BuildPairwiseResources
-    Properties:
-      Description: Encryption key for DynamoDB Pairwise Table
-      EnableKeyRotation: true
-      KeyPolicy:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
-            Action: "kms:*"
-            Resource: "*"
-
-  PairwiseMappingTable:
-    Type: AWS::DynamoDB::Table
-    Condition: BuildPairwiseResources
-    Properties:
-      TableName: pairwise-mapping-table
-      BillingMode: PAY_PER_REQUEST
-      AttributeDefinitions:
-        - AttributeName: commonSubjectId
-          AttributeType: S
-        - AttributeName: clientId
-          AttributeType: S
-        - AttributeName: clientPairwiseIdLookup
-          AttributeType: S
-      KeySchema:
-        - AttributeName: commonSubjectId
-          KeyType: HASH
-        - AttributeName: clientId
-          KeyType: RANGE
-      GlobalSecondaryIndexes:
-        - IndexName: ClientPairwiseIdIndex
-          KeySchema:
-            - AttributeName: clientPairwiseIdLookup
-              KeyType: HASH
-          Projection:
-            ProjectionType: KEYS_ONLY
-      PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: true
-      SSESpecification:
-        SSEEnabled: true
-        SSEType: KMS
-        KMSMasterKeyId: !Ref PairwiseTableKeyStore
-
-  ##############################################################
-  # Ingestion Lambda IAM Role
-  ##############################################################
-  IngestionLambdaRole:
-    #checkov:skip=CKV_AWS_111: Write access needed to dynamic logs resource
-    Type: AWS::IAM::Role
-    Condition: BuildPairwiseResources
-    Properties:
-      RoleName: !Sub ${AWS::StackName}-ingestion-lambda-role
-      PermissionsBoundary: !If
-        - UsePermissionsBoundary
-        - !Ref PermissionsBoundary
-        - !Ref AWS::NoValue
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-            Action:
-              - sts:AssumeRole
-      Path: "/"
-      Policies:
-        - PolicyName: dynamodbAccessRole
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - dynamodb:*
-                Resource: !GetAtt PairwiseMappingTable.Arn
-              - Effect: Allow
-                Action:
-                  - logs:*
-                Resource: "*"
-              - Effect: Allow
-                Action:
-                  - kms:*
-                Resource: !GetAtt PairwiseTableKeyStore.Arn
-
-  ##############################################################
-  # Ingestion Lambda
-  ##############################################################
-  IngestionLambda:
-    #checkov:skip=CKV_AWS_116: Lambda level DLQs not supported with SQS / Api Gateway Triggers. DLQs at Queue level instead
-    #checkov:skip=CKV_AWS_117: VPC does not need to be configured currently for mock rp, TBC
-    #checkov:skip=CKV_AWS_173: Environment Variable not Sensitive
-    Type: AWS::Serverless::Function
-    Condition: BuildPairwiseResources
-    Properties:
-      Description: When ran on the main branch of an environment, this lambda is ran to populate the dynamoDB table acting as the pairwiseID lookup table for the mock.
-      CodeUri: src/lambdas/MockPairwiseIngestionLambda
-      Handler: handler.handler
-      ReservedConcurrentExecutions: 10
-      Runtime: nodejs18.x
-      Role: !GetAtt IngestionLambdaRole.Arn
-      Timeout: 60
-    Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        Minify: false
-        Target: "es2020"
-        EntryPoints:
-          - handler.ts
-
-  IngestionLambdaLogs:
-    Type: AWS::Logs::LogGroup
-    Condition: BuildPairwiseResources
-    Properties:
-      LogGroupName: !Sub "/aws/lambda/${IngestionLambda}"
-      KmsKeyId: !GetAtt LogKeyStore.Arn
-      RetentionInDays: 30
-
-  ##############################################################
-  # DynamoDB Actions
-  ##############################################################
-  InitializeDynamoDB:
-    Type: Custom::IngestionLambda
-    Condition: BuildPairwiseResources
-    Properties:
-      ServiceToken: !GetAtt IngestionLambda.Arn
-      DynamoTableName:
-        Ref: PairwiseMappingTable
-
-  InboundSsfPairwiseTableRole:
-    Type: AWS::IAM::Role
-    Condition: BuildPairwiseResources
-    Properties:
-      RoleName: !Sub ${AWS::StackName}-pairwise-table-role
-      PermissionsBoundary: !If
-        - UsePermissionsBoundary
-        - !Ref PermissionsBoundary
-        - !Ref AWS::NoValue
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
-            Action:
-              - sts:AssumeRole
-      Path: "/"
-      Policies:
-        - PolicyName: dynamodbAccessRole
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - dynamodb:Query
-                Resource:
-                  - !GetAtt PairwiseMappingTable.Arn
-                  - !Sub "${PairwiseMappingTable.Arn}/index/*"
-              - Effect: Allow
-                Action:
-                  - kms:*
-                Resource: !GetAtt PairwiseTableKeyStore.Arn
-
-  ##############################################################
   # PublicKey Lambda
   ##############################################################
   PublicKeyLambda:
     #checkov:skip=CKV_AWS_116: Lambda level DLQs not supported with SQS / Api Gateway Triggers. DLQs at Queue level instead
-    #checkov:skip=CKV_AWS_117: VPC does not need to be configured currently for mock rp, TBC
+    #checkov:skip=CKV_AWS_117: VPC does not need to be configured currently for rp transmitter, TBC
     #checkov:skip=CKV_AWS_173: Environment Variable not Sensitive
     Type: AWS::Serverless::Function
     Properties:
@@ -581,7 +340,7 @@ Resources:
       Architectures:
         - arm64
       FunctionName: !Sub ${Environment}-${AWS::StackName}-public-key
-      Description: Simulates an RP endpoint for serving their public key. Triggered by API Gateway requests. Fetches mock public key from AWS KMS for SET verification.
+      Description: Simulates an RP endpoint for serving their public key. Triggered by API Gateway requests. Fetches RP transmitter public key from AWS KMS for SET verification.
       CodeUri: src/lambdas/PublicKeyLambda
       Handler: handler.handler
       MemorySize: 128
