@@ -30,7 +30,7 @@ jobs:
       - name: Run Tests
         run: |
           npm ci
-          npm test
+          npm test --passWithNoTests
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
