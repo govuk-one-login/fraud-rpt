@@ -11,14 +11,14 @@ repos:
       - id: no-commit-to-branch
       - id: check-json
   - repo: https://github.com/bridgecrewio/checkov.git
-    rev: 'e16741670e20fdfe2cb88f273a2ac177d820435b'
+    rev: "e16741670e20fdfe2cb88f273a2ac177d820435b"
     hooks:
       - id: checkov
         args: [--quiet]
         language_version: python3.11
         files: .*
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: '6fd1ced85fc139abd7f5ab4f3d78dab37592cd5e'
+    rev: "6fd1ced85fc139abd7f5ab4f3d78dab37592cd5e"
     hooks:
       - id: prettier
         stages: [commit, push]
