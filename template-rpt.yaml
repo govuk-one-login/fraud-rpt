@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: "2010-09-09"
+AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
   Application for inbound messages from relying parties.
@@ -16,24 +16,24 @@ Parameters:
     Type: String
     Description: >
       The ARN of the Code Signing Config to use, provided by the deployment pipeline
-    Default: "none"
+    Default: 'none'
   PermissionsBoundary:
     Type: String
     Description: >
       The ARN of the permissions boundary to apply to any role created by the template
-    Default: "none"
+    Default: 'none'
   BranchName:
     Type: String
-    Description: "Name of the branch to be deployed"
-    Default: "main"
+    Description: 'Name of the branch to be deployed'
+    Default: 'main'
 
 Conditions:
-  UseCodeSigning: !Not [!Equals [!Ref CodeSigningConfigArn, "none"]]
-  UsePermissionsBoundary: !Not [!Equals [!Ref PermissionsBoundary, "none"]]
-  onMainBranch: !Equals [!Ref "BranchName", "main"]
+  UseCodeSigning: !Not [!Equals [!Ref CodeSigningConfigArn, 'none']]
+  UsePermissionsBoundary: !Not [!Equals [!Ref PermissionsBoundary, 'none']]
+  onMainBranch: !Equals [!Ref 'BranchName', 'main']
   IsDevOrBuildEnv: !Or
-    - !Equals [!Ref Environment, "development"]
-    - !Equals [!Ref Environment, "build"]
+    - !Equals [!Ref Environment, 'development']
+    - !Equals [!Ref Environment, 'build']
   BuildPairwiseResources: !And
     - Condition: onMainBranch
     - Condition: IsDevOrBuildEnv
@@ -60,23 +60,25 @@ Globals:
 
 Mappings:
   ##############################################################
-  # JWS Signing
+  # JWS Signing         
   ##############################################################
   JWSSignRoleARNs:
     Environment:
-      development: "arn:aws:iam::604477301065:role/JWS-Sign-Role"
-      build: "arn:aws:iam::250353618339:role/JWS-Sign-Role"
-      staging: "arn:aws:iam::861348360548:role/JWS-Sign-Role"
+      development: 'arn:aws:iam::604477301065:role/JWS-Sign-Role'
+      build: 'arn:aws:iam::250353618339:role/JWS-Sign-Role'
+      staging: 'arn:aws:iam::861348360548:role/JWS-Sign-Role'
 
   JWSSignKMSARNs:
     Environment:
-      development: "arn:aws:kms:eu-west-2:604477301065:key/89a56ae8-0cc4-451f-ab40-7a712b11c27f"
-      build: "arn:aws:kms:eu-west-2:250353618339:key/6d4d235d-331f-438b-8404-83700ca78e18"
-      staging: "arn:aws:kms:eu-west-2:861348360548:key/b3b5e606-007d-4756-b612-dfdc67403d0e"
+      development: 'arn:aws:kms:eu-west-2:604477301065:key/89a56ae8-0cc4-451f-ab40-7a712b11c27f'
+      build: 'arn:aws:kms:eu-west-2:250353618339:key/6d4d235d-331f-438b-8404-83700ca78e18'
+      staging: 'arn:aws:kms:eu-west-2:861348360548:key/b3b5e606-007d-4756-b612-dfdc67403d0e'
+
+
 
 Resources:
   ##############################################################
-  # Activation API Gateway
+  # Activation API Gateway                
   ##############################################################
   ServiceActivationApiGateway:
     Type: AWS::Serverless::Api
@@ -86,7 +88,7 @@ Resources:
       StageName: !Ref Environment
       TracingEnabled: true
       CacheClusterEnabled: true
-      CacheClusterSize: "0.5"
+      CacheClusterSize: '0.5'
       AccessLogSetting:
         DestinationArn: !GetAtt ServiceActivationApiLogs.Arn
         Format: '{"requestTime":"$context.requestTime","requestId":"$context.requestId","httpMethod":"$context.httpMethod","path":"$context.path","resourcePath":"$context.resourcePath","status":$context.status,"responseLatency":$context.responseLatency}'
@@ -97,7 +99,7 @@ Resources:
       KmsKeyId: !GetAtt LogKeyStore.Arn
       RetentionInDays: 30
 
-  ##############################################################
+##############################################################
   # SET Generator Lambda
   ##############################################################
   GeneratorLambda:
@@ -134,15 +136,15 @@ Resources:
         - KMSDecryptPolicy:
             KeyId: !Ref QueueKeyStore
         - SSMParameterWithSlashPrefixReadPolicy:
-            ParameterName: !Sub "/${Environment}/ssf/SSFUserPoolClientId"
+            ParameterName: !Sub '/${Environment}/ssf/SSFUserPoolClientId'
         - SSMParameterWithSlashPrefixReadPolicy:
-            ParameterName: !Sub "/${Environment}/ssf/SSFUserPoolId"
+            ParameterName: !Sub '/${Environment}/ssf/SSFUserPoolId'
         - Statement:
             Sid: allowDescribeUserPool
             Effect: Allow
             Action:
               - cognito-idp:DescribeUserPoolClient
-            Resource: "*"
+            Resource: '*'
         - Statement:
             Sid: queueKeyPermissions
             Effect: Allow
@@ -154,14 +156,14 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: false
-        Target: "es2020"
+        Target: 'es2020'
         EntryPoints:
           - handler.ts
 
   SETGeneratorLambdaLogs:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/aws/lambda/${GeneratorLambda}"
+      LogGroupName: !Sub '/aws/lambda/${GeneratorLambda}'
       KmsKeyId: !GetAtt LogKeyStore.Arn
       RetentionInDays: 30
 
@@ -263,27 +265,27 @@ Resources:
                 !Ref Environment,
               ]
         - SSMParameterWithSlashPrefixReadPolicy:
-            ParameterName: !Sub "/${Environment}/ssf/SSFUserPoolClientId"
+            ParameterName: !Sub '/${Environment}/ssf/SSFUserPoolClientId'
         - SSMParameterWithSlashPrefixReadPolicy:
-            ParameterName: !Sub "/${Environment}/ssf/SSFUserPoolId"
+            ParameterName: !Sub '/${Environment}/ssf/SSFUserPoolId'
         - Statement:
             Sid: allowDescribeUserPool
             Effect: Allow
             Action:
               - cognito-idp:DescribeUserPoolClient
-            Resource: "*"
+            Resource: '*'
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
         Minify: false
-        Target: "es2020"
+        Target: 'es2020'
         EntryPoints:
           - handler.ts
 
   SETTransmitterLambdaLogs:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/aws/lambda/${TransmitterLambda}"
+      LogGroupName: !Sub '/aws/lambda/${TransmitterLambda}'
       KmsKeyId: !GetAtt LogKeyStore.Arn
       RetentionInDays: 30
 
@@ -296,13 +298,13 @@ Resources:
       Description: Encryption key for Queues
       EnableKeyRotation: true
       KeyPolicy:
-        Version: "2012-10-17"
+        Version: '2012-10-17'
         Statement:
           - Effect: Allow
             Principal:
-              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
-            Action: "kms:*"
-            Resource: "*"
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
 
   LogKeyStore:
     Type: AWS::KMS::Key
@@ -310,18 +312,19 @@ Resources:
       Description: Encryption key for Logs
       EnableKeyRotation: true
       KeyPolicy:
-        Version: "2012-10-17"
+        Version: '2012-10-17'
         Statement:
           - Effect: Allow
             Principal:
-              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
-            Action: "kms:*"
-            Resource: "*"
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
           - Effect: Allow
             Principal:
-              Service: !Sub "logs.${AWS::Region}.amazonaws.com"
-            Action: "kms:*"
-            Resource: "*"
+              Service: !Sub 'logs.${AWS::Region}.amazonaws.com'
+            Action: 'kms:*'
+            Resource: '*'
+
 
   ##############################################################
   # PublicKey Lambda
@@ -357,14 +360,14 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: false
-        Target: "es2020"
+        Target: 'es2020'
         EntryPoints:
           - handler.ts
 
   PublicKeyLambdaLogs:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/aws/lambda/${PublicKeyLambda}"
+      LogGroupName: !Sub '/aws/lambda/${PublicKeyLambda}'
       KmsKeyId: !GetAtt LogKeyStore.Arn
       RetentionInDays: 30
 
@@ -380,7 +383,7 @@ Resources:
         - !Ref PermissionsBoundary
         - !Ref AWS::NoValue
       AssumeRolePolicyDocument:
-        Version: "2012-10-17"
+        Version: '2012-10-17'
         Statement:
           - Effect: Allow
             Principal:
@@ -388,7 +391,7 @@ Resources:
                 - lambda.amazonaws.com
             Action:
               - sts:AssumeRole
-      Path: "/"
+      Path: '/'
 
   ##############################################################
   # IAM Policy for PublicKeyLambda to access SSM Parameter
@@ -398,11 +401,11 @@ Resources:
     Properties:
       PolicyName: GetPublicKeyParameterPolicy
       PolicyDocument:
-        Version: "2012-10-17"
+        Version: '2012-10-17'
         Statement:
           - Effect: Allow
-            Action: "ssm:GetParameter"
-            Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Environment}/PublicKeyArn"
+            Action: 'ssm:GetParameter'
+            Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Environment}/PublicKeyArn'
       Roles:
         - !Ref PublicKeyLambdaExecutionRole
 
@@ -411,10 +414,12 @@ Resources:
     Properties:
       PolicyName: GetPublicKMSKeyPolicy
       PolicyDocument:
-        Version: "2012-10-17"
+        Version: '2012-10-17'
         Statement:
           - Effect: Allow
-            Action: "kms:GetPublicKey"
-            Resource: "*"
+            Action: 'kms:GetPublicKey'
+            Resource: '*'
       Roles:
         - !Ref PublicKeyLambdaExecutionRole
+        
+        
