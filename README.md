@@ -48,16 +48,3 @@ The public key is retreived from KMS using the `KeyManager` class and exported i
 The public key data is exported and converted to base64 format and a response is created with a 200 status code and the public key in the body.
 
 Successful retrieval of the public key is logged by the `FraudLogger`. Any errors in any step are also logged and a 500 status code and an error message is returned in case of failure.
-
-
-
-
-
-
-
-
-
-
-
-
-
