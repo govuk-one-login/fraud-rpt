@@ -87,7 +87,6 @@ Resources:
       TracingEnabled: true
       CacheClusterEnabled: true
       CacheClusterSize: "0.5"
-
       AccessLogSetting:
         DestinationArn: !GetAtt ServiceActivationApiLogs.Arn
         Format: '{"requestTime":"$context.requestTime","requestId":"$context.requestId","httpMethod":"$context.httpMethod","path":"$context.path","resourcePath":"$context.resourcePath","status":$context.status,"responseLatency":$context.responseLatency}'
@@ -418,4 +417,5 @@ Resources:
             Action: "kms:GetPublicKey"
             Resource: "*"
       Roles:
+        - !Ref PublicKeyLambdaExecutionRole
         - !Ref PublicKeyLambdaExecutionRole

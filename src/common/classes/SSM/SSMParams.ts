@@ -5,7 +5,6 @@ import {
   SSMClient,
 } from "@aws-sdk/client-ssm";
 import { ErrorMessages } from "../../enums/ErrorMessages";
-import { fraudTracer } from "../../logging/logging";
 import { stringTypeGuard } from "../../typeGuards/typeguards";
 
 export class SSMParams {
@@ -17,7 +16,6 @@ export class SSMParams {
    * @param paramNames
    * @returns
    */
-  @fraudTracer.captureMethod()
   async getParams(paramNames: ParameterNames[]): Promise<string[]> {
     const requestParams: GetParametersCommandInput = {
       Names: [

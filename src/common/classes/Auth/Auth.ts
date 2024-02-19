@@ -4,7 +4,6 @@ import {
   DescribeUserPoolClientCommandOutput,
 } from "@aws-sdk/client-cognito-identity-provider";
 import { ErrorMessages } from "../../enums/ErrorMessages";
-import { fraudTracer } from "../../logging/logging";
 import { ParameterNames, ssmParams } from "../SSM/SSMParams";
 import { TokenInfo } from "../../interfaces/interfaces";
 
@@ -30,14 +29,12 @@ export class Auth {
     this.authToken = "Token Not Yet Requested";
   }
 
-  @fraudTracer.captureMethod()
   public async getAllAuthValues() {
     await this.getIds();
     await this.getSecret();
     await this.getAuthToken();
   }
 
-  @fraudTracer.captureMethod()
   public async getIds() {
     const [userPoolClientId, userPoolId]: Array<string | undefined> =
       await ssmParams.getParams([
@@ -49,7 +46,6 @@ export class Auth {
     this.authParams.userPoolId = userPoolId;
   }
 
-  @fraudTracer.captureMethod()
   public async getSecret() {
     const client: CognitoIdentityProviderClient =
       new CognitoIdentityProviderClient();
@@ -66,7 +62,6 @@ export class Auth {
     this.authParams.userPoolSecret = response.UserPoolClient.ClientSecret;
   }
 
-  @fraudTracer.captureMethod()
   public async getAuthToken() {
     const base64Token: string = Buffer.from(
       `${this.authParams.userPoolClientId}:${this.authParams.userPoolSecret}`,

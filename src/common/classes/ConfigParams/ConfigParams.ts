@@ -1,5 +1,6 @@
 import { ErrorMessages } from "../../enums/ErrorMessages";
 import { ActivationApiConfigParams } from "../../interfaces/interfaces";
+import { MockRPs } from '../MockSET/MockRPs';
 import { validEventKeys } from "../../enums/eventsEnums";
 import { InboundPipelineURLs } from "../../enums/InboundPipelineURLs";
 import { fraudTracer } from "../../logging/logging";
@@ -23,10 +24,10 @@ export class ConfigParams {
    *
    * @param eventJson is the json body passed through from the api. Expected to be the format detailed in the read me.
    */
-  @fraudTracer.captureMethod()
   public async parseAllApiParams(eventJson: any) {
     const response: PromiseSettledResult<void>[] = await Promise.allSettled([
       this.parseNumMessages(eventJson),
+      this.parseRpSplit(eventJson),
       this.parseEventTypeSplit(eventJson),
       this.parseErrorRate(eventJson),
       this.parseInboundEndpointURL(eventJson),
@@ -49,7 +50,6 @@ export class ConfigParams {
    *
    * @param promiseResult is the result of the promise, expected to be a rejected result
    */
-  @fraudTracer.captureMethod()
   public errorTypeGuard(
     promiseResult: PromiseSettledResult<void> | PromiseRejectedResult,
   ): promiseResult is PromiseRejectedResult {
@@ -61,7 +61,6 @@ export class ConfigParams {
    *
    * @param eventJson is the json body passed through from the api. Expected to be the format detailed in the read me.
    */
-  @fraudTracer.captureMethod()
   public async parseNumMessages(eventJson: any) {
     if (!eventJson.numMessages) {
       return;
@@ -74,11 +73,34 @@ export class ConfigParams {
   }
 
   /**
+   * Function which parses the rpSplit field of the eventJson, should it exist, and updates the configParams instance value.
+   *
+   * @param eventJson is the json body passed through from the api. Expected to be the format detailed in the read me.
+   */
+  public async parseRpSplit(eventJson: any) {
+    if (!eventJson.rpSplit) {
+      return;
+    }
+    if (
+      !Array.isArray(eventJson?.rpSplit) ||
+      eventJson?.rpSplit.every(
+        (arrayValue: number) => typeof arrayValue !== "number",
+      ) ||
+      eventJson.rpSplit.length !== Object.keys(MockRPs).length
+    ) {
+      throw new ReferenceError(ErrorMessages.ConfigParams.RpSplitInvalid);
+    }
+
+    this.configParams.rpSplit = await this.getProbabilitiyArray(
+      eventJson.rpSplit,
+    );
+  }
+
+  /**
    * Function which parses the eventType field of the eventJson, should it exist, and updates the configParams instance value.
    *
    * @param eventJson is the json body passed through from the api. Expected to be the format detailed in the read me.
    */
-  @fraudTracer.captureMethod()
   public async parseEventTypeSplit(eventJson: any) {
     if (!eventJson.eventTypeSplit) {
       return;
@@ -105,7 +127,6 @@ export class ConfigParams {
    *
    * @param eventJson is the json body passed through from the api. Expected to be the format detailed in the read me.
    */
-  @fraudTracer.captureMethod()
   public async parseErrorRate(eventJson: any) {
     if (!eventJson.errorRate) {
       return;
@@ -142,7 +163,6 @@ export class ConfigParams {
    * @param array is an array of numbers.
    * @returns the normalised array
    */
-  @fraudTracer.captureMethod()
   public async getProbabilitiyArray(
     array: Array<number>,
   ): Promise<Array<number>> {
