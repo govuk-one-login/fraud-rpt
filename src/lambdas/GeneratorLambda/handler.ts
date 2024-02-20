@@ -75,14 +75,53 @@ class GeneratorLambda implements LambdaInterface {
         await configParams.parseAllApiParams(eventJson);
       }
 
-      //Catch for the handler-wide try-catch functionality for erros
+        // Check the endpoint is active
+        this.fraudLogger.logDebug('Checking endpoint health');
+        await this.inboundEndpointHealthCheck(
+          configParams.configParams.inboundEndpointURL,
+          auth.authToken
+        );
+
+      // Report run success
+      this.fraudLogger.logSuccessfullyProcessed(responseBody);
+      this.statusCode = 202;
+      this.body = `Generation run results: ${JSON.stringify(responseBody)}`;
     } catch (error: any) {
-      this.fraudLogger.logDebug("Error Stack Trace: ${error.stack}");
-      this.fraudLogger.logErrorProcessing("No Message ID", error);
-      this.statusCode = 500;
-      this.body = error.message;
-    } finally {
-      this.fraudLogger.metrics.publishStoredMetrics();
+        this.fraudLogger.logDebug("Error Stack Trace: ${error.stack}");
+        this.fraudLogger.logErrorProcessing("No Message ID", error);
+        this.statusCode = 500;
+        this.body = error.message;
+      } finally {
+        this.fraudLogger.metrics.publishStoredMetrics();
+      }
+  }
+
+
+  /**
+   *  Healthcheck for the supplied inbound ssf URL,
+   *
+   * @param url
+   * @param bodyData
+   */
+  public async inboundEndpointHealthCheck(
+    endpointURL: string,
+    authToken: string
+  ): Promise<void> {
+    try {
+      const response: Response = await fetch(endpointURL, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: 'POST',
+        body: 'healthcheck',
+      });
+      if (!response.ok) {
+        throw new Error(
+          `Non-succesful response for ${endpointURL}. Response: ${response.status}, ${response.statusText}`
+        );
+      }
+    } catch (error: any) {
+      throw new Error(`Healthcheck for ${endpointURL} failed: ${error}`);
     }
   }
 }
