@@ -74,6 +74,62 @@ class GeneratorLambda implements LambdaInterface {
         this.fraudLogger.logDebug("Event JSON exists, parsing API parameters");
         await configParams.parseAllApiParams(eventJson);
       }
+      // Generate and send the SETs
+      this.fraudLogger.logDebug('Generating and sending SETs');
+
+      const responseBody: GeneratorResponseBody =
+        await this.generateAndSendSETs(configParams);
+
+      // Report run success
+      this.fraudLogger.logSuccessfullyProcessed(responseBody);
+      this.statusCode = 202;
+      this.body = `Generation run results: ${JSON.stringify(responseBody)}`;
+    } catch (error: any) {
+      this.fraudLogger.logDebug(`Error Stack Trace: ${error.stack}`);
+      this.fraudLogger.logErrorProcessing('No Message ID', error);
+      this.statusCode = 500;
+      this.body = error.message;
+    } finally {
+      this.fraudLogger.metrics.publishStoredMetrics();
+    }
+
+    return {
+      statusCode: this.statusCode,
+      body: this.body,
+    };
+  }
+
+
+  /**
+   *  Send Successfully Processed Event log
+   *
+   * @param configParams are the stored config params for the SET messages generation run
+   * @returns The response to return via the API
+   */
+  public async generateAndSendSETs(configParams: ConfigParams) {
+    // Generate and send SETs in batches of 10.
+    this.fraudLogger.logDebug(
+      `generateAndSendSETs - config: ${JSON.stringify(
+        configParams.configParams
+      )}`
+    );
+
+    let totalFailedMessageAttempts: number = 0;
+    let totalSuccessfulMessageAttempts: number = 0;
+
+    let numFailedMessageAttempts: number;
+    let remainingMessages: number = configParams.configParams.numMessages;
+    let numGenerationAttempts: number = 0;
+
+
+
+
+
+
+
+
+
+
 
       //Catch for the handler-wide try-catch functionality for erros
     } catch (error: any) {
