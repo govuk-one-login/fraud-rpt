@@ -1,0 +1,67 @@
+name: Upload SAM Application to CodePipeline
+
+on:
+  workflow_call:
+    inputs:
+      aws-region: { required: true, type: string }
+      release-number: { required: true, type: string }
+      sam-template-file: { required: true, type: string }
+    secrets:
+      signing-profile-name: { required: true }
+      aws-role-arn: { required: true }
+      s3-bucket-name: { required: true }
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}-codepipeline
+  cancel-in-progress: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  upload-to-pipeline-job:
+    name: Upload To Pipeline Job
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    environment: build
+    steps:
+      - name: Git Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get Build Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: fpad-functions
+
+      - name: Assume AWS Role
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.aws-role-arn }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Get Latest Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "LATEST_RELEASE=$(gh release view --json tagName)" >> $GITHUB_ENV
+
+      - name: Parse Release Number
+        id: parse-release-number
+        uses: actions/github-script@98814c53be79b1d30f795b907e553d8679345975
+        with:
+          result-encoding: string
+          script: |
+            return JSON.parse(process.env.LATEST_RELEASE).tagName;
+
+      - name: Upload to AWS S3
+        env:
+          ARTIFACT_BUCKET: ${{ secrets.s3-bucket-name }}
+          SIGNING_PROFILE: ${{ secrets.signing-profile-name }}
+          AWS_REGION: ${{ inputs.aws-region }}
+          TEMPLATE_FILE: ${{ inputs.sam-template-file }}
+          VERSION_NUMBER: ${{ steps.parse-release-number.outputs.result }}
+        run: ./.github/scripts/upload.sh
+        shell: bash

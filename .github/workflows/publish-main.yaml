@@ -1,0 +1,68 @@
+name: Publish Main
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  run-build-action:
+    name: Run Build Action
+    uses: ./.github/workflows/build.yaml
+    permissions:
+      id-token: write
+      contents: read
+    with:
+      environment: build
+      sam-template-file: template-rpt.yaml
+      region: ${{ vars.AWS_REGION }}
+    secrets:
+      aws-role-arn: ${{ secrets.GH_ACTIONS_ROLE_ARN }}
+
+  run-unit-tests-action:
+    name: Run Unit Tests Action
+    uses: ./.github/workflows/unit-tests.yaml
+    needs: run-build-action
+    permissions:
+      id-token: write
+      contents: read
+
+  run-deploy-to-aws-action:
+    name: Run Deploy to AWS Action
+    uses: ./.github/workflows/deploy-to-aws.yaml
+    needs: run-unit-tests-action
+    permissions:
+      id-token: write
+      contents: read
+    with:
+      region: ${{ vars.AWS_REGION }}
+      stack-name-length: 24
+      stack-name-prefix: rp
+    secrets:
+      aws-role-arn: ${{ secrets.GH_ACTIONS_ROLE_ARN }}
+      sam-deployment-bucket: ${{ secrets.ARTIFACT_BUCKET_NAME }}
+
+  run-tag-release-action:
+    name: Run Tag Release Action
+    uses: ./.github/workflows/tag-release.yaml
+    needs: run-deploy-to-aws-action
+    permissions:
+      contents: write
+
+  run-upload-to-codepipeline-action:
+    name: Run Upload To Codepipeline Action
+    uses: ./.github/workflows/upload-to-codepipeline.yaml
+    needs: run-tag-release-action
+    permissions:
+      id-token: write
+      contents: read
+    with:
+      aws-region: ${{ vars.AWS_REGION }}
+      release-number: ${{ vars.RELEASE_VERSION }}
+      sam-template-file: template-rpt.yaml
+    secrets:
+      signing-profile-name: ${{ secrets.SIGNING_PROFILE_NAME }}
+      aws-role-arn: ${{ secrets.GH_ACTIONS_ROLE_ARN  }}
+      s3-bucket-name: ${{ secrets.ARTIFACT_BUCKET_NAME  }}

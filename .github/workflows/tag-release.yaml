@@ -1,0 +1,66 @@
+name: Tag Release
+
+on:
+  workflow_call:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}-tag
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  tag-release-job:
+    name: Tag Release Job
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Git Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get Latest Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "LATEST_RELEASE=$(gh release view --json tagName)" >> $GITHUB_ENV
+
+      - name: Get Last Commit Message
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "COMMIT_MESSAGE<<EOF" >> $GITHUB_ENV
+          echo $(git log -1 --pretty=%B) >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: bump-release-number
+        id: version-bump
+        uses: actions/github-script@98814c53be79b1d30f795b907e553d8679345975
+        with:
+          result-encoding: string
+          script: |
+            let [ major, minor, patch ] = process.env.LATEST_RELEASE ?
+              JSON.parse(process.env.LATEST_RELEASE).tagName.replace('v', '').split(".") : [0,0,0];
+
+            if (process.env.COMMIT_MESSAGE.includes("#MAJOR#")) {
+              return `v${++major}.0.0`;
+            } else if (process.env.COMMIT_MESSAGE.includes("#MINOR#")) {
+              return `v${major}.${++minor}.0`;
+            } else {
+              return `v${major}.${minor}.${++patch}`;
+            }
+
+      - name: create-new-release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION_NUMBER: ${{ steps.version-bump.outputs.result }}
+        run: gh release create $VERSION_NUMBER
+
+      - name: report-realease-number-update
+        shell: bash
+        env:
+          VERSION_NUMBER: ${{ steps.version-bump.outputs.result }}
+        run: echo "Latest Version Number - $VERSION_NUMBER " >> "$GITHUB_STEP_SUMMARY"

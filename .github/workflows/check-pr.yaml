@@ -1,0 +1,30 @@
+name: Check PR
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions: read-all
+
+jobs:
+  run-build-action:
+    name: Run Build Action
+    uses: ./.github/workflows/build.yaml
+    permissions:
+      id-token: write
+      contents: read
+      packages: read
+    with:
+      environment: development
+      sam-template-file: template-rpt.yaml
+      region: ${{ vars.AWS_REGION }}
+    secrets:
+      aws-role-arn: ${{ secrets.GH_ACTIONS_ROLE_ARN }}
+
+  run-unit-tests-action:
+    name: Run Unit Tests Action
+    uses: ./.github/workflows/unit-tests.yaml
+    permissions:
+      id-token: write
+      contents: read
+      packages: read

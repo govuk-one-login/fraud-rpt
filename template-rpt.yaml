@@ -418,3 +418,4 @@ Resources:
             Resource: "*"
       Roles:
         - !Ref PublicKeyLambdaExecutionRole
+        - !Ref PublicKeyLambdaExecutionRole

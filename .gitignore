@@ -1,0 +1,6 @@
+node_modules/
+.aws-sam/
+coverage/
+.vscode/
+.DS_Store
+.npmrc
