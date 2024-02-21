@@ -1,11 +1,15 @@
 # The Relying Party Transmitter
 
 This is the source code for the Relying Party Transmitter (RPT) which is responsible for transmitting messages from Relying parties (RPs) to the Shared Signals Framework (SSF).
-![Architecture of the RPT](MainArchitecture.png)
+![Architecture of the RPT](/READMEresources/MainArchitecture.png)
 
 ## 1. Setup
 
+---
+
 ## 1.1. Development Environment Set Up
+
+---
 
 Setup your environment using the following tools:
 
@@ -30,6 +34,8 @@ The following extensions should be installed for VSCode:
   This should add `problems`, which is accessed by `View` -> `Problems`.
 
 ## 1.2. Local Build and Invocation
+
+---
 
 ### Pre-Commit
 
@@ -133,13 +139,14 @@ sam local generate-event sqs receive-message
 
 ## 1.3 CloudFormation Deployment
 
+---
+
 The `deploy-branch.yaml` action should be used to deploy branches of the Mock RP to the AWS development environment.
 
 [See here](https://govukverify.atlassian.net/wiki/spaces/FPAD/pages/3684270595/Manual+Testing+of+Deployed+Branches) for a guide on branch deployment.
 
 
 ## 2. Activation Endpoint Use
-
 
 ---
 
@@ -179,6 +186,7 @@ No field is specifically required to be configured, if a given field is not prov
 }
 
 ```
+---
 
 This JSON must be sent via a POST request to the endpoint of the RPT, the URLs for the main RP Service in each environment are:
 
@@ -191,7 +199,9 @@ staging:
 
 ## 3. Implementation
 
-![Architecture of the RPT](DetailedArchitecture.png)
+---
+
+![Architecture of the RPT](READMEresources/DetailedArchitecture.png)
 
 ### 3.1. Generator Lambda
 
@@ -258,6 +268,3 @@ Successful retrieval of the public key is logged by the `FraudLogger`. Any error
 
 
 
-
-
-Common classes
