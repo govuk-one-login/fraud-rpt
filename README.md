@@ -3,7 +3,9 @@
 This is the source code for the Relying Party Transmitter (RPT) which is responsible for transmitting messages from Relying parties (RPs) to the Shared Signals Framework (SSF).
 ![Architecture of the RPT](/READMEresources/MainArchitecture.png)
 
-## 1. Setup
+---
+
+# 1. Setup
 
 ---
 
@@ -34,8 +36,6 @@ The following extensions should be installed for VSCode:
   This should add `problems`, which is accessed by `View` -> `Problems`.
 
 ## 1.2. Local Build and Invocation
-
----
 
 ### Pre-Commit
 
@@ -145,8 +145,9 @@ The `deploy-branch.yaml` action should be used to deploy branches of the Mock RP
 
 [See here](https://govukverify.atlassian.net/wiki/spaces/FPAD/pages/3684270595/Manual+Testing+of+Deployed+Branches) for a guide on branch deployment.
 
+---
 
-## 2. Activation Endpoint Use
+# 2. Activation Endpoint Use
 
 ---
 
@@ -162,11 +163,6 @@ No field is specifically required to be configured, if a given field is not prov
 ```typescript
 {
     "numMessages": 1,
-    "rpSplit": [
-        1,
-        0,
-        0
-    ],
     "eventTypeSplit": {
         "accountPurged": 1,
         "accountCredentialChangeRequired": 0,
@@ -190,49 +186,45 @@ No field is specifically required to be configured, if a given field is not prov
 
 This JSON must be sent via a POST request to the endpoint of the RPT, the URLs for the main RP Service in each environment are:
 
-development: 
-build: 
-staging: 
+development: TBD
+build: TBD
+staging: TBD
 
+---
 
-
-
-## 3. Implementation
+# 3. Implementation
 
 ---
 
 ![Architecture of the RPT](READMEresources/DetailedArchitecture.png)
 
-### 3.1. Generator Lambda
+## 3.1. Generator Lambda
 
----
-
-#### 3.1.1. Summary
+### 3.1.1. Summary
 
 The Generator Lambda generates messsages based on configuration parameters to pass to the [Transmitter Lambda](#Transmitter-Lambda) using SQS.
 
-#### 3.1.2. Detailed Description
+### 3.1.2. Detailed Description
 
-The Generator Lambda is triggered by an API Gateway event containing configuration parameters which are parsed using the [ConfigParams](#ConfigParams) class. 
+The Generator Lambda is triggered by an API Gateway event containing configuration parameters which are parsed using the [ConfigParams](#ConfigParams) class.
 
-The Lambda then does a Healthcheck to ensure the SSF Endpoint can be reached before generating any messages. 
+The Lambda then does a Healthcheck to ensure the SSF Endpoint can be reached before generating any messages.
 
-It then generates messages using the `ConfigParams` values and sends them in batches of 10 messages to the Transmitter Lambda using AWS `Simple Queue Service`. Any messages that fail to send are added to the dead letter queue. 
+It then generates messages using the `ConfigParams` values and sends them in batches of 10 messages to the Transmitter Lambda using AWS `Simple Queue Service`. Any messages that fail to send are added to the dead letter queue.
 
-When the Lambda finishes running, the number of failed messages are counted and that amount of messages are regenerated and sent by the Lambda. This will be repeated up to 5 times. 
+When the Lambda finishes running, the number of failed messages are counted and that amount of messages are regenerated and sent by the Lambda. This will be repeated up to 5 times.
 
 The Lambda will then report the number of successful messages sent, failed messages and the details of the ConfigParams it used.
 
-
-### 3.2. Transmitter Lambda
-
 ---
 
-#### 3.2.1. Summary
+## 3.2. Transmitter Lambda
 
-The Transmitter Lambda receives messages from the [Generator Lambda](#Generator-Lambda) via SQS.   It then makes POST requests to the `SSF Endpoint`.
+### 3.2.1. Summary
 
-#### 3.2.2. Detailed Description
+The Transmitter Lambda receives messages from the [Generator Lambda](#Generator-Lambda) via SQS. It then makes POST requests to the `SSF Endpoint`.
+
+### 3.2.2. Detailed Description
 
 The `SQS` messages from the `Generator Lambda` are received as an `SQS` event act as the triggers for the `Transmitter Lambda`.
 
@@ -246,16 +238,17 @@ The `Content Encryption Key (CEK)`, A.K.A the cipher is then encrypted using a p
 
 The `JWS` is then packaged into a post request and sent to the endpoint of the `Inbound-SSF pipeline`, defined in the destination field of the `SQS` message body.
 
-
-### 3.3. Public Key Lambda
-
 ---
 
-#### 3.3.1. Summary
+## 3.3. Public Key Lambda
 
-The Public Key Lambda retrieves a Public Key from the AWS `KMS` and returns this key for SET Verification.
+### 3.3.1. Summary
 
-#### 3.3.2. Detailed Description
+This Lambda simulates an RP's endpoint for serving their public key. Triggered by API Gateway requests, it fetches a public key from AWS KMS for SET verification.
+
+Inbound-SSF will then recieve this public key to verify the SETs
+
+### 3.3.2. Detailed Description
 
 The Lambda is triggered by an API Gateway Request and the `PublicKeyARN` is fetched from `SSMParams`.
 
@@ -265,6 +258,138 @@ The public key data is exported and converted to base64 format and a response is
 
 Successful retrieval of the public key is logged by the `FraudLogger`. Any errors in any step are also logged and a 500 status code and an error message is returned in case of failure.
 
+---
 
+# 4. Src/Common
 
+---
 
+## 4.1. Classes
+
+---
+
+### 4.1.1. ConfigParams
+
+This class handles the parsing and storing of the parameters passed through from the activation endpoint. When instantiated it constructs with the default values, then the `parseAllApiParams()` method checks the API event for any overrides, validates them, and stores them in place of the default values.
+
+### 4.1.2. JWS & JWE
+
+These classes hold the logic for coverting the SET messages received in the `Transmitter Lambda` into a valid JWE to be sent to the `SSF Endpoint`.
+
+### 4.1.3. MockEvents
+
+This class handles the generation of the `events` field of each `SET`, and is called within the `MockSET` class logic. The `EventMapping` handles the mapping of the requested event type to returning teh right class for that event.
+
+The `BaseEvent` object handles the events that follow the standard structure with the event specific values added through the mapping.
+
+For events with atypical structures, each has their own class that extends the `BaseEvent` class which the mapping will point to.
+
+### 4.1.4 MockSET
+
+This class handles the generation of the mock `SETs`. It uses the `configParams` values to generate the data and return a full SET.
+
+It will instantiate with default values which are then overrided by the calling of each of the methods - some of which depend on others.
+
+## 4.2. Other
+
+### 4.2.1. Logging / Tracing
+
+AWS Powertools is used within the Project to log events from inside each Lambda. These logs are sent to Cloudwatch. Different levels of logs can be recorded using the following methods in the PowerTools package;
+
+```TypeScript
+logger.debug()
+logger.info()
+logger.error()
+logger.critical()
+```
+
+##### Example logging method
+
+```TypeScript
+ /**
+   * Send Started Processing Event log
+   *
+   * @param messageId
+   */
+  logStartedProcessing = (messageId?: string): void => {
+    this.logger.info(LogEvents.StartedProcessing, { messageId });
+    this.metrics.addMetric(LogEvents.StartedProcessing, MetricUnits.Count, 1);
+  };
+```
+
+##### Example output in Cloudwatch
+
+```JSON
+{
+    "level": "INFO",
+    "message": "Started Processing",
+    "service": "inboundSSF",
+    "timestamp": "2023-05-25T09:20:32.132Z",
+    "xray_trace_id": "1-646f285f-4d67c24bfe2a7a5e227973e0",
+    "messageId": "d001fb5c-03c7-4519-bf31-c22aededc339"
+}
+
+```
+
+Powertools tracing can be used to track a single event / message throughout the entire inbound pipeline, showing the time taken to process by each Lambda, with the ability to break each lambda’s code down into segments for monitoring.
+
+**NOTE: Decorators can only be used on Class methods, and are not supported on individual functions.**
+
+Capturing Lambda handlers can be done by adding the captureLambdaHandler middleware to the Handler method
+
+```TypeScript
+export const handler = middy(
+  transmitterLambda.handler.bind(transmitterLambda)
+).use(captureLambdaHandler(fraudTracer));
+```
+
+AWS SDK clients can be wrapped with the captureAWSv3Client method to trace all method calls using that package
+
+```TypeScript
+const sqsClient = fraudTracer.captureAWSv3Client(
+  new SQSClient({
+    region: process.env.AWS_REGION,
+  })
+);
+```
+
+### 4.2.2. Queues
+
+SQS queues are used between the Lambdas. The `Generator Lambda` outputs events into the `SETTransmitterQueue`, which is used as an event source for the `Transmitter Lambda`.
+
+All SQS queues have Dead Letter Queues associated with them. If a message fails to be processed by the `Generator Lambda`, it will retry for a number of times setout by the queue redrive policy. Once this has been reached, the message will then be transferred to the DLQ associated with the queue.
+
+The JWS is then packaged into a post request and sent to the endpoint of the Inbound-SSF pipeline.
+
+# Troubleshooting
+
+## AWS Type Error
+
+If you ever encounter type errors _only_ after deployment, try these fixes:
+
+### Ensure uses of `async` are `await`-ed using `Promise.resolve`
+
+> ❌ `let a = await func()`
+> ✅ `let a = await Promise.resolve(func())`
+
+### Use `console.log` to ensure `type` is correct.
+
+> **NOTE:** For some reason these can change when deploying 🤷
+
+#### AWS:
+
+```typescript
+func a(data: Buffer) {
+  console.log(data) // Promise<Buffer>
+  data = await Promise.resolve(data)
+  console.log(data) // Buffer
+}
+```
+
+#### Local:
+
+```typescript
+func a(data: Buffer) {
+  console.log(data) // Buffer
+}
+```
