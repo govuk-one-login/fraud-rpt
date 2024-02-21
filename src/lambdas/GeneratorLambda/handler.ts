@@ -75,27 +75,26 @@ class GeneratorLambda implements LambdaInterface {
         await configParams.parseAllApiParams(eventJson);
       }
 
-        // Check the endpoint is active
-        this.fraudLogger.logDebug('Checking endpoint health');
-        await this.inboundEndpointHealthCheck(
-          configParams.configParams.inboundEndpointURL,
-          auth.authToken
-        );
+      // Check the endpoint is active
+      this.fraudLogger.logDebug("Checking endpoint health");
+      await this.inboundEndpointHealthCheck(
+        configParams.configParams.inboundEndpointURL,
+        auth.authToken,
+      );
 
       // Report run success
       this.fraudLogger.logSuccessfullyProcessed(responseBody);
       this.statusCode = 202;
       this.body = `Generation run results: ${JSON.stringify(responseBody)}`;
     } catch (error: any) {
-        this.fraudLogger.logDebug("Error Stack Trace: ${error.stack}");
-        this.fraudLogger.logErrorProcessing("No Message ID", error);
-        this.statusCode = 500;
-        this.body = error.message;
-      } finally {
-        this.fraudLogger.metrics.publishStoredMetrics();
-      }
+      this.fraudLogger.logDebug("Error Stack Trace: ${error.stack}");
+      this.fraudLogger.logErrorProcessing("No Message ID", error);
+      this.statusCode = 500;
+      this.body = error.message;
+    } finally {
+      this.fraudLogger.metrics.publishStoredMetrics();
+    }
   }
-
 
   /**
    *  Healthcheck for the supplied inbound ssf URL,
@@ -105,19 +104,19 @@ class GeneratorLambda implements LambdaInterface {
    */
   public async inboundEndpointHealthCheck(
     endpointURL: string,
-    authToken: string
+    authToken: string,
   ): Promise<void> {
     try {
       const response: Response = await fetch(endpointURL, {
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
-        method: 'POST',
-        body: 'healthcheck',
+        method: "POST",
+        body: "healthcheck",
       });
       if (!response.ok) {
         throw new Error(
-          `Non-succesful response for ${endpointURL}. Response: ${response.status}, ${response.statusText}`
+          `Non-succesful response for ${endpointURL}. Response: ${response.status}, ${response.statusText}`,
         );
       }
     } catch (error: any) {
