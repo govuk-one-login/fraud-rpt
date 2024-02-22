@@ -1,0 +1,59 @@
+name: Deploy to AWS
+
+on:
+  workflow_call:
+    inputs:
+      region: { required: true, type: string }
+      stack-name-length: { required: true, type: string }
+      stack-name-prefix: { required: false, type: string }
+    secrets:
+      aws-role-arn: { required: true }
+      sam-deployment-bucket: { required: true }
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}-deploy
+  cancel-in-progress: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-to-aws-job:
+    name: Deploy to AWS Job
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    environment: development
+    steps:
+      - name: Pull Repository
+        uses: actions/checkout@v3
+
+      - name: Get Build Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: fpad-functions
+
+      - name: Set Stack Name
+        id: set-stack-name
+        uses: alphagov/di-github-actions/beautify-branch-name@c6ee88734260ae374365bbe2b76ebe2553b3df19
+        with:
+          set-env-var: stack-name
+          length-limit: ${{ inputs.stack-name-length }}
+          usage: Stack name
+          prefix: ${{ inputs.stack-name-prefix }}
+
+      - name: Deploy SAM application
+        uses: alphagov/di-github-actions/sam/deploy-stack@850483e1476abd3f77a74f75a33b0b2871c29955
+        with:
+          aws-role-arn: ${{ secrets.aws-role-arn }}
+          aws-region: ${{ inputs.region }}
+          sam-deployment-bucket: ${{ secrets.sam-deployment-bucket }}
+          delete-failed-stack: true
+          stack-name: ${{ env.stack-name }}
+          tags: |
+            DeploymentSource="Github Actions"
+          parameters: |
+            Environment=development
+            LocalName=default
+            VpcStackName=mock-rp-vpc
+            BranchName=${{ github.head_ref || github.ref_name }}

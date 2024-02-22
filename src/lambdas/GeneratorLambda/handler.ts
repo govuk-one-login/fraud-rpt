@@ -351,6 +351,34 @@ class GeneratorLambda implements LambdaInterface {
     }
     return [logEvent, successfulMessageIds, failedBatchIds];
   }
+
+  /**
+   *  Healthcheck for the supplied inbound ssf URL,
+   *
+   * @param url
+   * @param bodyData
+   */
+  public async inboundEndpointHealthCheck(
+    endpointURL: string,
+    authToken: string,
+  ): Promise<void> {
+    try {
+      const response: Response = await fetch(endpointURL, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        method: "POST",
+        body: "healthcheck",
+      });
+      if (!response.ok) {
+        throw new Error(
+          `Non-succesful response for ${endpointURL}. Response: ${response.status}, ${response.statusText}`,
+        );
+      }
+    } catch (error: any) {
+      throw new Error(`Healthcheck for ${endpointURL} failed: ${error}`);
+    }
+  }
 }
 
 export const generatorLambda: GeneratorLambda = new GeneratorLambda(
