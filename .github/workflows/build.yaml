@@ -64,7 +64,7 @@ jobs:
           disable-cache: true
           enable-beta-features: true
           sam-template-file: ${{ inputs.sam-template-file }}
-          aws-role-arn: ${{ secrets.GH_ACTIONS_ROLE_ARN }}
+          aws-role-arn: ${{ secrets.aws-role-arn }}
           aws-region: ${{ inputs.region }}
 
       - name: Upload SAM Build Artifact
