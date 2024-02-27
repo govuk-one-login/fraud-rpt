@@ -1,26 +1,34 @@
 import { APIGatewayProxyEvent, Context } from 'aws-lambda';
 import { publicKeyLambda } from './handler';
 import { KeyManager } from '../../common/classes/keys/keys';
-import { LogEvents } from '../../common/enums/Log-events';
+// import { LogEvents } from '../../common/enums/Log-events';
 import { KeyObject } from 'crypto';
 import { ssmParams } from '../../common/classes/SSM/SSMParams';
 
 jest.mock('../../common/classes/keys/keys');
 
-
-
-
-
-
-
-
-  
-  const mockKeyObject: KeyObject = {
-    type: 'public',
-    export: () => Buffer.from('mockPublicKey'),
-    asymmetricKeyType: 'rsa',
-    asymmetricKeySize: 2048,
-  } as unknown as KeyObject;
+// jest.mock('@govuk-one-login/logging/logging', () => ({
+  // FraudLogger: jest.fn(() => ({
+    logDebug: jest.fn(),
+    logMessage: jest.fn(),
+    logErrorProcessing: jest.fn(),
+    metrics: {
+      publishStoredMetrics: jest.fn(),
+    },
+  })),
+  fraudTracer: {
+    captureAWSv3Client: () => jest.fn(),
+    captureLambdaHandler: () => jest.fn(),
+    captureMethod: () => jest.fn(),
+  },
+}));
+ 
+const mockKeyObject: KeyObject = {
+  type: 'public',
+  export: () => Buffer.from('mockPublicKey'),
+  asymmetricKeyType: 'rsa',
+  asymmetricKeySize: 2048,
+} as unknown as KeyObject;
   
 describe('PublicKeyLambda', () => {
     const mockEvent = {} as APIGatewayProxyEvent;
