@@ -8,20 +8,20 @@ import { ssmParams } from '../../common/classes/SSM/SSMParams';
 jest.mock('../../common/classes/keys/keys');
 
 // jest.mock('@govuk-one-login/logging/logging', () => ({
-  // FraudLogger: jest.fn(() => ({
-    logDebug: jest.fn(),
-    logMessage: jest.fn(),
-    logErrorProcessing: jest.fn(),
-    metrics: {
-      publishStoredMetrics: jest.fn(),
-    },
-  })),
-  fraudTracer: {
-    captureAWSv3Client: () => jest.fn(),
-    captureLambdaHandler: () => jest.fn(),
-    captureMethod: () => jest.fn(),
-  },
-}));
+//   FraudLogger: jest.fn(() => ({
+//     logDebug: jest.fn(),
+//     logMessage: jest.fn(),
+//     logErrorProcessing: jest.fn(),
+//     metrics: {
+//       publishStoredMetrics: jest.fn(),
+//     },
+//   })),
+//   fraudTracer: {
+//     captureAWSv3Client: () => jest.fn(),
+//     captureLambdaHandler: () => jest.fn(),
+//     captureMethod: () => jest.fn(),
+//   },
+// }));
  
 const mockKeyObject: KeyObject = {
   type: 'public',
