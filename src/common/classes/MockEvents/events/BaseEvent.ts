@@ -1,5 +1,5 @@
-import { JsonMockSET } from '../../../interfaces/interfaces';
-import { issSubEventURIs } from '../../../enums/eventsEnums';
+import { JsonMockSET } from "../../../interfaces/interfaces";
+import { issSubEventURIs } from "../../../enums/eventsEnums";
 
 export class BaseEvent {
   iss: string;
@@ -25,7 +25,7 @@ export class BaseEvent {
     return {
       [this.eventURI]: {
         subject: {
-          subject_type: 'iss_sub',
+          subject_type: "iss_sub",
           iss: this.iss,
           sub: this.sub,
         },

@@ -1,14 +1,14 @@
-import { expect, describe, it } from '@jest/globals';
-import { Auth } from './Auth';
-import { mockClient } from 'aws-sdk-client-mock';
+import { expect, describe, it } from "@jest/globals";
+import { Auth } from "./Auth";
+import { mockClient } from "aws-sdk-client-mock";
 import {
   CognitoIdentityProviderClient,
   DescribeUserPoolClientCommand,
-} from '@aws-sdk/client-cognito-identity-provider';
-import { GetParametersCommand, SSMClient } from '@aws-sdk/client-ssm';
-import { ErrorMessages } from '../../enums/ErrorMessages';
+} from "@aws-sdk/client-cognito-identity-provider";
+import { GetParametersCommand, SSMClient } from "@aws-sdk/client-ssm";
+import { ErrorMessages } from "../../enums/ErrorMessages";
 
-process.env.ENVIRONMENT = 'development';
+process.env.ENVIRONMENT = "development";
 
 const mockSSMClient = mockClient(SSMClient);
 
@@ -21,33 +21,33 @@ beforeEach(() => {
   mockSSMClient.on(GetParametersCommand).resolves({
     Parameters: [
       {
-        Name: '/undefined/ssf/SSFUserPoolClientId',
-        Value: 'mockUserPoolClientId',
+        Name: "/undefined/ssf/SSFUserPoolClientId",
+        Value: "mockUserPoolClientId",
       },
-      { Name: '/undefined/ssf/SSFUserPoolId', Value: 'mockUserPoolId' },
+      { Name: "/undefined/ssf/SSFUserPoolId", Value: "mockUserPoolId" },
     ],
   });
 
   mockCognitoClient.reset();
   mockCognitoClient.on(DescribeUserPoolClientCommand).resolves({
     UserPoolClient: {
-      ClientSecret: 'mockClientSecret',
+      ClientSecret: "mockClientSecret",
     },
   });
 });
 
-describe('Auth', () => {
-  it('should be defined', async () => {
+describe("Auth", () => {
+  it("should be defined", async () => {
     expect(Auth).toBeDefined();
   });
 
-  it('should initialise to some default auth params', async () => {
+  it("should initialise to some default auth params", async () => {
     const auth: Auth = new Auth();
     const schema = {
       authParams: {
         tokenBaseURL: `https://di-fraud-ssf-auth-${process.env.ENVIRONMENT}.auth.eu-west-2.amazoncognito.com`, //Auth token endpoint
-        oauthIdentifier: 'messages', //for this pretty much always 'messages' for now
-        oauthScope: 'write', //for this always 'write' for now
+        oauthIdentifier: "messages", //for this pretty much always 'messages' for now
+        oauthScope: "write", //for this always 'write' for now
       },
       authToken: expect.any(String),
     };
@@ -55,22 +55,22 @@ describe('Auth', () => {
   });
 });
 
-describe('getAllAuthValues', () => {
-  it('Should run all the functions to fetch the needed secrets and paramaters', async () => {
+describe("getAllAuthValues", () => {
+  it("Should run all the functions to fetch the needed secrets and paramaters", async () => {
     const auth: Auth = new Auth();
-    jest.spyOn(auth, 'getIds');
-    jest.spyOn(auth, 'getSecret');
-    jest.spyOn(auth, 'getAuthToken');
+    jest.spyOn(auth, "getIds");
+    jest.spyOn(auth, "getSecret");
+    jest.spyOn(auth, "getAuthToken");
     const fetchResponseMock = () =>
       Promise.resolve({
         ok: true,
         status: 200,
-        statusText: 'ok',
+        statusText: "ok",
         json: async () => ({
-          access_token: 'mockAuthToken',
+          access_token: "mockAuthToken",
         }),
       } as Response);
-    jest.spyOn(global, 'fetch').mockImplementation(fetchResponseMock);
+    jest.spyOn(global, "fetch").mockImplementation(fetchResponseMock);
 
     await auth.getAllAuthValues();
 
@@ -80,31 +80,31 @@ describe('getAllAuthValues', () => {
 
     expect(auth.authParams).toStrictEqual({
       tokenBaseURL:
-        'https://di-fraud-ssf-auth-development.auth.eu-west-2.amazoncognito.com',
-      oauthIdentifier: 'messages',
-      oauthScope: 'write',
-      userPoolClientId: 'mockUserPoolClientId',
-      userPoolId: 'mockUserPoolId',
-      userPoolSecret: 'mockClientSecret',
+        "https://di-fraud-ssf-auth-development.auth.eu-west-2.amazoncognito.com",
+      oauthIdentifier: "messages",
+      oauthScope: "write",
+      userPoolClientId: "mockUserPoolClientId",
+      userPoolId: "mockUserPoolId",
+      userPoolSecret: "mockClientSecret",
     });
 
-    expect(auth.authToken).toStrictEqual('mockAuthToken');
+    expect(auth.authToken).toStrictEqual("mockAuthToken");
   });
 });
 
-describe('getIds', () => {
-  it('should update the UserPool Ids', async () => {
+describe("getIds", () => {
+  it("should update the UserPool Ids", async () => {
     const auth: Auth = new Auth();
     expect(auth.authParams.userPoolId).toBeUndefined();
     expect(auth.authParams.userPoolClientId).toBeUndefined();
 
     await auth.getIds();
-    expect(auth.authParams.userPoolId).toBe('mockUserPoolId');
-    expect(auth.authParams.userPoolClientId).toBe('mockUserPoolClientId');
+    expect(auth.authParams.userPoolId).toBe("mockUserPoolId");
+    expect(auth.authParams.userPoolClientId).toBe("mockUserPoolClientId");
   });
 
-  it.each([[{ Value: 'mockUserPoolClientId' }], [{ Value: 'mockUserPoolId' }]])(
-    'should error if any UserPool Ids missing',
+  it.each([[{ Value: "mockUserPoolClientId" }], [{ Value: "mockUserPoolId" }]])(
+    "should error if any UserPool Ids missing",
     async (returnParams) => {
       mockSSMClient.on(GetParametersCommand).resolvesOnce({
         Parameters: returnParams,
@@ -113,22 +113,22 @@ describe('getIds', () => {
       const auth: Auth = new Auth();
 
       await expect(() => auth.getIds()).rejects.toThrowError(
-        ErrorMessages.SSM.NoSSMParameters
+        ErrorMessages.SSM.NoSSMParameters,
       );
-    }
+    },
   );
 });
 
-describe('getSecret', () => {
-  it('should update the UserPool Ids', async () => {
+describe("getSecret", () => {
+  it("should update the UserPool Ids", async () => {
     const auth: Auth = new Auth();
     expect(auth.authParams.userPoolSecret).toBeUndefined();
 
     await auth.getSecret();
-    expect(auth.authParams.userPoolSecret).toBe('mockClientSecret');
+    expect(auth.authParams.userPoolSecret).toBe("mockClientSecret");
   });
 
-  it('should error if any UserPool Ids missing', async () => {
+  it("should error if any UserPool Ids missing", async () => {
     mockCognitoClient
       .on(DescribeUserPoolClientCommand)
       .resolvesOnce({ UserPoolClient: {} });
@@ -136,44 +136,44 @@ describe('getSecret', () => {
     const auth: Auth = new Auth();
 
     await expect(() => auth.getSecret()).rejects.toThrowError(
-      ErrorMessages.Auth.FailedSSMSecret
+      ErrorMessages.Auth.FailedSSMSecret,
     );
   });
 });
 
-describe('getAuthToken', () => {
-  it('should update the Auth Token', async () => {
+describe("getAuthToken", () => {
+  it("should update the Auth Token", async () => {
     const fetchResponseMock = () =>
       Promise.resolve({
         ok: true,
         status: 200,
-        statusText: 'ok',
+        statusText: "ok",
         json: async () => ({
-          access_token: 'mockAuthToken',
+          access_token: "mockAuthToken",
         }),
       } as Response);
-    jest.spyOn(global, 'fetch').mockImplementation(fetchResponseMock);
+    jest.spyOn(global, "fetch").mockImplementation(fetchResponseMock);
 
     const auth: Auth = new Auth();
-    expect(auth.authToken).toBe('Token Not Yet Requested');
+    expect(auth.authToken).toBe("Token Not Yet Requested");
 
     await auth.getAuthToken();
-    expect(auth.authToken).toBe('mockAuthToken');
+    expect(auth.authToken).toBe("mockAuthToken");
   });
 
-  it('should update the Auth Token', async () => {
+  it("should update the Auth Token", async () => {
     const fetchResponseMock = () =>
       Promise.resolve({
         ok: false,
         status: 400,
-        statusText: 'Mock Failed Response',
+        statusText: "Mock Failed Response",
       } as Response);
-    jest.spyOn(global, 'fetch').mockImplementation(fetchResponseMock);
+    jest.spyOn(global, "fetch").mockImplementation(fetchResponseMock);
 
     const auth: Auth = new Auth();
 
     await expect(() => auth.getAuthToken()).rejects.toThrowError(
-      ErrorMessages.Auth.GetAuthTokenFailed
+      ErrorMessages.Auth.GetAuthTokenFailed,
     );
   });
 });

@@ -1,8 +1,8 @@
-import { EventTypes } from '../../enums/eventsEnums';
-import { JsonMockSET } from '../../interfaces/interfaces';
-import { AccountDisabledEvent } from './events/AccountDisabledEvent';
-import { BaseEvent } from './events/BaseEvent';
-import { CredentialCompromiseEvent } from './events/CredentialCompromiseEvent';
+import { EventTypes } from "../../enums/eventsEnums";
+import { JsonMockSET } from "../../interfaces/interfaces";
+import { AccountDisabledEvent } from "./events/AccountDisabledEvent";
+import { BaseEvent } from "./events/BaseEvent";
+import { CredentialCompromiseEvent } from "./events/CredentialCompromiseEvent";
 
 export const EventMapping: Record<
   EventTypes,
