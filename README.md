@@ -182,6 +182,7 @@ No field is specifically required to be configured, if a given field is not prov
 }
 
 ```
+
 ---
 
 This JSON must be sent via a POST request to the endpoint of the RPT, the URLs for the main RP Service in each environment are:
