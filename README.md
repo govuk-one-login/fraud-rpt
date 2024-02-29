@@ -1,98 +1,119 @@
 # The Relying Party Transmitter
-The Relying Party Transmitter (RPT) application demonstrates how messages can be transmitted from Relying Parties (RPs) to the Shared Signals Framework (SSF). Though this implementation uses serverless functions in AWS (AWS Lambda), the approach described is platform independent.
 
-There are three components to the RPT application:
-- [Generator function](#Generator-Function): Generates test cases of messages to pass to the Transmitter function. 
-- [Transmitter function](#Transmitter-Function): Verifies and signs messages received from the Generator Function and forwards them to the Shared Signals Framework (SSF) endpoint.
-- [Public Key function](#Public-Key-Function): Simulates an RP's endpoint for serving their public key
+The Relying Party Transmitter (RPT) application demonstrates how a [Security Event Token](https://datatracker.ietf.org/doc/html/rfc8417) (SET) can be sent from Relying Parties (RPs) to the Transmitter in the Shared Signals Framework (SSF) using a severless function, known as the Transmitter function. This function signs and encrypts a Security Event Token and forwards it to the Shared Signals Framework (SSF) endpoint.
+
+Helper functions have been added for the purpose of testing the transmitter function. The Generator function generates test cases of messages to pass on and a public key function simulates an RP's endpoint for serving their public key.
+
+Though this implementation uses serverless functions in AWS (AWS Lambda), the approach described is platform independent.
 
 ![Architecture of the RPT](/READMEresources/MainArchitecture.png)
-##  Overview
+
+## Background
+
+A Security Event Token is issued on a state change of a security subject, for example a user account or an HTTP session. When the Shared Signals Transmitter endpoint receives a SET, it will validate and interpret the received Security Event Token and takes its own independent actions, if any.
+
+An example Security Event Token:
+
+```json
+{
+   "SET": {
+      "iss": "https://issuer.digitalIdentity.gov/",
+      "jti": "756e697175654964656e74696669657230",
+      "iat": 1520364019,
+      "aud": "https://audience.hmrc.gov/",
+      "events": {
+      "https://schemas.digitalIdentity.gov/secevent/risc/event-type/ipv-spot-request-recieved": {
+         "subject": {
+            "format": "iss_sub",
+            "iss": "https://issuer.digitalIdentity.gov/",
+            "sub": "aPairwiseId"
+            }
+         }
+      }
+   }
+}
+```
+
+The Security Event Token format extends the JSON Web Token (JWT) format which describes claims. The claims in a Security Event Token are described in [RFC8417](https://datatracker.ietf.org/doc/html/rfc8417) and describe the security event that has taken place, the issuer, the subject and the intended audience of the event.
+
+A JWT can be represented as:
+
+- a JSON Web Signature (JWS) where the claims are provided in the payload to be signed (the most common format).
+  - This has the format: `[header].[payload].[signature]`
+- a JSON Web Encryption (JWE) where the claims are provided in the plaintext to be signed and/or encrypted.
+  - This has the format: `[header].[encrypted key].[encrypted payload].[random number].[authentication tag]`
+
+JWS and JWE use algorithms defined in JSON Web Algorithm (JWA). The public key of the algorithm is stored as a JSON Web Key (JWK).
+
+## Transmitter function
+
+The Transmitter function signs and encrypts a Security Event Token and forwards it to the Shared Signals Framework (SSF) Transmitter endpoint. It is triggered when a message is received from the Generator function.
+
+This function:
+
+1. Signs the Security Event Token, using a private key as the signature. The signed SET and signature are used to generate a JWS object. The SSF endpoint will use the corresponding public key to verify the signature.
+2. Encrypts the JWS, using the full JWS object as the message:
+   1. Generates a random Content Encryption Key (CEK)
+   2. Encrypt the CEK with the RP's public key to form the JWE encrypted key
+   3. Generates a random JWE inititilization vector
+   4. Generates a header based on the algorithms chosen for encrypting for the CEK, and the message
+   5. Generates the AAD encryption value based on the header
+   6. Encrypts the message using the CEK, JWE Initialization Vector, the ADD value. An authentication tags is producted as an artifact of this process.
+   7. Based64url-encodes each component to form a JWE formatted object.
+3. Sends the JWE to the SSF endpoint
+
+## Helper functions
+
 ### Generator function
-The Generator function is triggered by an API to send a series of event messages to the transmitter function. Messages are generated based on the number of messages to send, the ratio of each event type, the error rate of the generated messages and the endpoint of the SSF pipeline.
 
-Event Types:
-- accountPurged
-- accountCredentialChangeRequired
-- accountDisabled
-- accountEnabled
-- credentialCompromise
-- optIn
-- optOutInitiated
-- optOutCancelled
-- optOutEffective
-- recoveryActivated
-- recoveryInformationChanged
-- sessionsRevoked
+The Generator function generates a series of messages to sent to the Transmitter function. It is triggered by an API call.
 
-The function:
-- tests that the SSF is available
+This function:
+
+- tests that the SSF endpoint is available
 - sends batches of messages to the Transmitter function
 - regenerates and resends failed messages
 - logs the number of successful and failed messages, with the parameters
 
-### Transmitter function
-
-The Transmitter function is triggered when a message is received from the Generator function.
-
-The function:
-- authenticates using the JSON Web Tokens (JWT) provided in the message
-- packages the message body into a JSON Web Signature (JWS)
-- signs the JWS using a private key
-- generates a JSON Web Encryption (JWE) based on the JWS
-- generates a Content Encryption Key (CEK) using the JWE
-- signs the CEK using a public key from the Inbound-SSF
-- adds the CEK to the JWS
-- sends the JWS as a message to the Inbound-SSF pipeline endpoint
+Settings provided to the API determines the number of messages to send, the ratio of each [event type](#event-types), the error rate a generated SET and the endpoint of the SSF pipeline to use.
 
 ### Public Key function
-The Public Key function is triggered by an API call to retrive the public key used by the Inbound-SSF to verify the SETs (what does this mean?).
-The function:
+
+The Public Key function is triggered by an API call to retrive the public key used by the Inbound-SSF to verify the Security Event Token.
+
+This function:
+
 - returns the public key from a key store
 - logs the request
 
 In our example, the public key is returned as a base64-encoded PEM file.
 
-## Configure your development environment
+## Building the application
 
-### Install recommended developer tools
-
-We recommend installing the following tools:
-- [VS Code](https://code.visualstudio.com/download) as a preferred IDE for its extensions with AWS
-- [Serverless Application Mode (SAM) CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
-- [Node.js](https://nodejs.org/en/), including `npm`.
-- [Docker](https://docs.docker.com/desktop/) why?
-- [pre-commit](https://pre-commit.com) to run pre-commit hooks
-
-### Configure recommended developer tools
-
-- Run `pre-commit install` to install pre-commit hooks
-- Install the [AWS Toolkit extension for VS Code](https://docs.aws.amazon.com/toolkit-for-vscode/latest/userguide/welcome.html)
- - The AWS Toolkit can be connected through SSO using `aws configure sso` and then selecting the correct profile at the bottom of VSCode.
-- Install the [SonarLint extension for VS Code](https://marketplace.visualstudio.com/items?itemName=SonarSource.sonarlint-vscode)
- - SonarLint should be connected through the `Connected Mode` it offers.
- - Once it has been connected, creating the binding of your local repo to the `di-fraud-mock-rp` repo on `SonarCloud`.
-
-### Building the application
 - [Generate a Personal Access Token (PAT)](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) with 'read-packages' permissions
- - How long does this token last?
 - Store the PAT in a .npmrc file at the repository root
-   ```
+
+   ```bash
    @govuk-one-login:registry=https://npm.pkg.github.com
    //npm.pkg.github.com/:\_authToken=<Your Personal Access Token>
    ```
+
 - Install application dependencies
- ```bash
- npm i
- ```
+
+   ```bash
+   npm i
+   ```
+
 - Build the application in AWS
- ```bash
- sam build --template template-mock-rp.yaml --region eu-west-2
- ```
+
+   ```bash
+   sam build --template template-mock-rp.yaml --region eu-west-2
+   ```
 
 ### Running functions manually
 
 You can invoke functions with the `sam local invoke` command.
+
 ```bash
 sam local invoke TransmitterLambda
 ```
@@ -100,14 +121,17 @@ sam local invoke TransmitterLambda
 ### Running functions based on events
 
 - To run your function with an event, use the `--event` parameter.
+
  ```bash
  sam local invoke TransmitterLambda --event event.json
  ```
 
 An event can be generated for a service:
+
 ```bash
 sam local generate-event <service> <event>
 ```
+
 For example, to generate an `SQS` service `receive-message` event:
 
 ```bash
@@ -162,7 +186,7 @@ logger.error()
 logger.critical()
 ```
 
-##### Example logging method
+### Example logging method
 
 ```TypeScript
 /**
@@ -176,7 +200,7 @@ logger.critical()
  };
 ```
 
-##### Example output in Cloudwatch
+#### Example output in Cloudwatch
 
 ```JSON
 {
@@ -212,6 +236,27 @@ const sqsClient = fraudTracer.captureAWSv3Client(
 );
 ```
 
+## Configure your development environment
+
+### Install recommended developer tools
+
+We recommend installing the following tools:
+
+- [VS Code](https://code.visualstudio.com/download) as a preferred IDE for its extensions with AWS
+- [Serverless Application Mode (SAM) CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
+- [Node.js](https://nodejs.org/en/), including npm.
+- [Docker](https://docs.docker.com/desktop/)
+- [pre-commit](https://pre-commit.com) to run pre-commit hooks
+
+### Configure recommended developer tools
+
+- Run `pre-commit install` to install pre-commit hooks
+- Install the [AWS Toolkit extension for VS Code](https://docs.aws.amazon.com/toolkit-for-vscode/latest/userguide/welcome.html)
+- The AWS Toolkit can be connected through SSO using `aws configure sso` and then selecting the correct profile at the bottom of VSCode.
+- Install the [SonarLint extension for VS Code](https://marketplace.visualstudio.com/items?itemName=SonarSource.sonarlint-vscode)
+- SonarLint should be connected through the `Connected Mode` it offers.
+- Once it has been connected, creating the binding of your local repo to the di-fraud-mock-rp repo on SonarCloud
+
 #### Queues
 
 SQS queues are used between the Lambdas. The `Generator Lambda` outputs events into the `SETTransmitterQueue`, which is used as an event source for the `Transmitter Lambda`.
@@ -219,3 +264,18 @@ SQS queues are used between the Lambdas. The `Generator Lambda` outputs events i
 All SQS queues have Dead Letter Queues associated with them. If a message fails to be processed by the `Generator Lambda`, it will retry for a number of times setout by the queue redrive policy. Once this has been reached, the message will then be transferred to the DLQ associated with the queue.
 
 The JWS is then packaged into a post request and sent to the endpoint of the Inbound-SSF pipeline.
+
+### Event Types
+
+- accountPurged
+- accountCredentialChangeRequired
+- accountDisabled
+- accountEnabled
+- credentialCompromise
+- optIn
+- optOutInitiated
+- optOutCancelled
+- optOutEffective
+- recoveryActivated
+- recoveryInformationChanged
+- sessionsRevoked
