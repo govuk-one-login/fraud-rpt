@@ -3,17 +3,18 @@ import {
   APIGatewayProxyResult,
   Context,
 } from "aws-lambda";
+
 // import { FraudLogger, fraudTracer } from '@govuk-one-login/logging/logging';
-// import { Logger } from '@aws-lambda-powertools/logger';
+import { Logger } from '@aws-lambda-powertools/logger';
 import { Metrics } from "@aws-lambda-powertools/metrics";
 import { LambdaInterface } from "@aws-lambda-powertools/commons/lib/utils/lambda";
-//  import { LogEvents } from '../../common/enums/Log-events';
+import { LogEvents } from '../../common/enums/Log-events';
 import { KeyManager } from "../../common/classes/keys/keys";
 import { SSMClient } from "@aws-sdk/client-ssm";
 import { KeyObject } from "crypto";
 import { PublicKeyLambdaResponse } from "../../common/interfaces/interfaces";
 import { ParameterNames, ssmParams } from "../../common/classes/SSM/SSMParams";
-//  import { captureLambdaHandler } from '@aws-lambda-powertools/tracer';
+import { captureLambdaHandler } from '@aws-lambda-powertools/tracer';
 import middy from "@middy/core";
 
 class PublicKeyLambda implements LambdaInterface {
@@ -75,3 +76,4 @@ class PublicKeyLambda implements LambdaInterface {
 // export const handler = middy(publicKeyLambda.handler.bind(publicKeyLambda)).use(
 // //  captureLambdaHandler(fraudTracer)
 // );
+
