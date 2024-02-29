@@ -1,8 +1,8 @@
 # The Relying Party Transmitter
 
-The Relying Party Transmitter (RPT) application demonstrates how a [Security Event Token](https://datatracker.ietf.org/doc/html/rfc8417) (SET) can be sent from Relying Parties (RPs) to the Transmitter in the Shared Signals Framework (SSF) using a severless function, known as the Transmitter function. This function signs and encrypts a Security Event Token and forwards it to the Shared Signals Framework (SSF) endpoint.
+The Relying Party Transmitter (RPT) application demonstrates how a [Security Event Token](https://datatracker.ietf.org/doc/html/rfc8417) (SET) can be sent from Relying Parties (RPs) to the Transmitter in the Shared Signals Framework (SSF) using a severless function, known as the Transmitter function. This function signs and encrypts a Security Event Token and forwards it to the Shared Signals Framework endpoint.
 
-Helper functions have been added for the purpose of testing the transmitter function. The Generator function generates test cases of messages to pass on and a public key function simulates an RP's endpoint for serving their public key.
+Helper functions have been added for the purpose of testing the Transmitter function. The Generator function generates test cases of messages to pass on and the public key function simulates an RP's endpoint for serving their public key.
 
 Though this implementation uses serverless functions in AWS (AWS Lambda), the approach described is platform independent.
 
@@ -43,8 +43,6 @@ A JWT can be represented as:
 - a JSON Web Encryption (JWE) where the claims are provided in the plaintext to be signed and/or encrypted.
   - This has the format: `[header].[encrypted key].[encrypted payload].[random number].[authentication tag]`
 
-JWS and JWE use algorithms defined in JSON Web Algorithm (JWA). The public key of the algorithm is stored as a JSON Web Key (JWK).
-
 ## Transmitter function
 
 The Transmitter function signs and encrypts a Security Event Token and forwards it to the Shared Signals Framework (SSF) Transmitter endpoint. It is triggered when a message is received from the Generator function.
@@ -53,14 +51,14 @@ This function:
 
 1. Signs the Security Event Token, using a private key as the signature. The signed SET and signature are used to generate a JWS object. The SSF endpoint will use the corresponding public key to verify the signature.
 2. Encrypts the JWS, using the full JWS object as the message:
-   1. Generates a random Content Encryption Key (CEK)
-   2. Encrypt the CEK with the RP's public key to form the JWE encrypted key
-   3. Generates a random JWE inititilization vector
-   4. Generates a header based on the algorithms chosen for encrypting for the CEK, and the message
-   5. Generates the AAD encryption value based on the header
-   6. Encrypts the message using the CEK, JWE Initialization Vector, the ADD value. An authentication tags is producted as an artifact of this process.
+   1. Generates a random Content Encryption Key (CEK).
+   2. Encrypt the CEK with the RP's public key to form the JWE encrypted key.
+   3. Generates a random JWE inititilization vector.
+   4. Generates a header based on the algorithms chosen for encrypting for the CEK and the message.
+   5. Generates the AAD encryption value based on the header.
+   6. Encrypts the message using the CEK, JWE Initialization Vector and the ADD value. An authentication tag is producted as an artifact of this process.
    7. Based64url-encodes each component to form a JWE formatted object.
-3. Sends the JWE to the SSF endpoint
+3. Sends the JWE to the SSF endpoint.
 
 ## Helper functions
 
