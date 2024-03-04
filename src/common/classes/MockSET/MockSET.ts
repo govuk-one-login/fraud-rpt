@@ -1,21 +1,23 @@
-import { ErroneousJsonMockSET, JsonMockSET } from '../../interfaces/interfaces';
-import { MockRPs } from './MockRPs';
-import { EventTypes, validEventKeys } from '../../enums/eventsEnums';
-import { EventMapping } from '../MockEvents/EventMapping';
-import { BaseEvent } from '../MockEvents/events/BaseEvent';
+import { ErroneousJsonMockSET, JsonMockSET } from "../../interfaces/interfaces";
+import { MockRP } from "./MockRPs";
+import { EventTypes, validEventKeys } from "../../enums/eventsEnums";
+import { EventMapping } from "../MockEvents/EventMapping";
+import { BaseEvent } from "../MockEvents/events/BaseEvent";
 export class MockSET {
   mockSET: JsonMockSET | ErroneousJsonMockSET;
 
+  // Set aud AKA Audience to be the URL for the inbound endpoint that is being transmitted towards
+
   constructor() {
     this.mockSET = {
-      iss: 'https://MockRP1.account.gov.uk/publicKey/',
-      jti: '1111AAAA',
+      iss: "https://MockRP1.account.gov.uk/publicKey/",
+      jti: "1111AAAA",
       iat: 0,
-      aud: 'https://inbound.ssf.account.gov.uk/',
-      sub: 'RP1USER1',
-      txn: '2222BBBB',
+      aud: "https://inbound.ssf.account.gov.uk/",
+      sub: "RP1USER1",
+      txn: "2222BBBB",
       toe: 10,
-      events: 'No event supplied',
+      events: "No event supplied",
     };
   }
 
@@ -38,15 +40,15 @@ export class MockSET {
   public async generateUniqueID(): Promise<string> {
     const time: number = new Date().getTime();
     const characters: string =
-      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     let uniqueID: string = time.toString();
 
     let randomIndex: number = 0;
-    let randomChar: string = '';
+    let randomChar: string = "";
     for (let i = 0; i < 8; i++) {
       randomIndex = Math.floor(Math.random() * uniqueID.length);
       randomChar = characters.charAt(
-        Math.floor(Math.random() * characters.length)
+        Math.floor(Math.random() * characters.length),
       );
       uniqueID =
         uniqueID.slice(0, randomIndex) +
@@ -75,17 +77,17 @@ export class MockSET {
    * @param rpSplit is the probability ratio of messages to come from the 3 mock rps
    */
   public async adjustRpOfOrigin(rpSplit: Array<number>): Promise<void> {
-    const MockRPsKeys: Array<keyof typeof MockRPs> = Object.keys(
-      MockRPs
-    ) as unknown as Array<keyof typeof MockRPs>;
+    const MockRPKeys: Array<keyof typeof MockRP> = Object.keys(
+      MockRP,
+    ) as unknown as Array<keyof typeof MockRP>;
 
-    const chosenRP: keyof typeof MockRPs = await this.weightedChoiceFromArray<
-      keyof typeof MockRPs
-    >(MockRPsKeys, rpSplit);
+    const chosenRP: keyof typeof MockRP = await this.weightedChoiceFromArray<
+      keyof typeof MockRP
+    >(MockRPKeys, rpSplit);
 
-    this.mockSET.iss = MockRPs[chosenRP].publicKeyURL;
+    this.mockSET.iss = MockRP[chosenRP].publicKeyURL;
 
-    const userPairwiseIDs = MockRPs[chosenRP].userPairwiseIDs;
+    const userPairwiseIDs = MockRP[chosenRP].userPairwiseIDs;
     const userPairwiseIDsKeys: Array<string> = Object.keys(userPairwiseIDs);
     const chosenUser = userPairwiseIDsKeys[
       Math.floor(Math.random() * userPairwiseIDsKeys.length)
@@ -103,11 +105,11 @@ export class MockSET {
     const chosenEventType: EventTypes =
       await this.weightedChoiceFromArray<EventTypes>(
         validEventKeys,
-        eventSplit
+        eventSplit,
       );
 
     const eventObject: BaseEvent = EventMapping[chosenEventType](
-      this.mockSET as JsonMockSET
+      this.mockSET as JsonMockSET,
     );
 
     this.mockSET.events = await eventObject.constructEvent();
@@ -121,7 +123,7 @@ export class MockSET {
   public async addError(errorChance: number): Promise<void> {
     const causeError: boolean = await this.weightedChoiceFromArray<boolean>(
       [true, false],
-      [errorChance, 1 - errorChance]
+      [errorChance, 1 - errorChance],
     );
 
     if (!causeError) {
@@ -129,49 +131,49 @@ export class MockSET {
     }
 
     const setFields: Array<string> = [
-      'iss',
-      'iat',
-      'jti',
-      'aud',
-      'sub',
-      'txn',
-      'toe',
-      'events',
+      "iss",
+      "iat",
+      "jti",
+      "aud",
+      "sub",
+      "txn",
+      "toe",
+      "events",
     ];
     const fieldToError: string =
       setFields[Math.floor(Math.random() * setFields.length)];
 
     // Switch case used as more varied errors are likely to be wanted in the future past making the whole field undefined
     switch (fieldToError) {
-      case 'iss': {
+      case "iss": {
         this.mockSET.iss = undefined;
         break;
       }
-      case 'iat': {
+      case "iat": {
         this.mockSET.iat = undefined;
         break;
       }
-      case 'jti': {
+      case "jti": {
         this.mockSET.jti = undefined;
         break;
       }
-      case 'aud': {
+      case "aud": {
         this.mockSET.aud = undefined;
         break;
       }
-      case 'sub': {
+      case "sub": {
         this.mockSET.sub = undefined;
         break;
       }
-      case 'txn': {
+      case "txn": {
         this.mockSET.txn = undefined;
         break;
       }
-      case 'toe': {
+      case "toe": {
         this.mockSET.toe = undefined;
         break;
       }
-      case 'events': {
+      case "events": {
         this.mockSET.events = undefined;
         break;
       }
@@ -187,12 +189,12 @@ export class MockSET {
    */
   public async weightedChoiceFromArray<ArrayType>(
     array: Array<ArrayType>,
-    weights: Array<number>
+    weights: Array<number>,
   ): Promise<ArrayType> {
     weights = weights.map((weight) => Math.round(weight * 10));
     const sum: number = weights.reduce(
       (sum, currentValue) => sum + currentValue,
-      0
+      0,
     );
     let indexCounter: number = 0;
     let choiceArray: Array<any> = Array(sum);

@@ -1,6 +1,7 @@
-import { EventTypes } from '../../../enums/eventsEnums';
-import { JsonMockSET } from '../../../interfaces/interfaces';
-import { BaseEvent } from './BaseEvent';
+import { EventTypes } from "../../../enums/eventsEnums";
+import { JsonMockSET } from "../../../interfaces/interfaces";
+import { BaseEvent } from "./BaseEvent";
+
 
 export class AccountDisabledEvent extends BaseEvent {
   constructor(mockSet: JsonMockSET) {
@@ -16,11 +17,12 @@ export class AccountDisabledEvent extends BaseEvent {
     return {
       [this.eventURI]: {
         subject: {
-          subject_type: 'iss_sub',
+
+          subject_type: "iss_sub",
           iss: this.iss,
           sub: this.sub,
         },
-        reason: 'Insert reason here',
+        reason: "Insert reason here",
       },
     };
   }
