@@ -1,5 +1,5 @@
 import { ErroneousJsonMockSET, JsonMockSET } from "../../interfaces/interfaces";
-import { MockRP } from "./MockRPs";
+import { MockRP } from "./MockRP";
 import { EventTypes, validEventKeys } from "../../enums/eventsEnums";
 import { EventMapping } from "../MockEvents/EventMapping";
 import { BaseEvent } from "../MockEvents/events/BaseEvent";

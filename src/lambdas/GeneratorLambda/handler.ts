@@ -11,7 +11,7 @@ import {
 import { SendMessageBatchCommandOutput } from "@aws-sdk/client-sqs";
 import { LambdaInterface } from "@aws-lambda-powertools/commons";
 import { Metrics } from "@aws-lambda-powertools/metrics";
-import { FraudLogger, fraudTracer } from "@govuk-one-login/logging/logging";
+// import { FraudLogger, fraudTracer } from "@govuk-one-login/logging/logging";
 import { Logger } from "@aws-lambda-powertools/logger";
 import { captureLambdaHandler } from "@aws-lambda-powertools/tracer";
 import { ErrorMessages } from "../../common/enums/ErrorMessages";
@@ -21,7 +21,7 @@ import { ConfigParams } from "../../common/classes/ConfigParams/ConfigParams";
 import { GeneratorResponseBody } from "../../common/interfaces/interfaces";
 import { Auth } from "../../common/classes/Auth/Auth";
 import { stringTypeGuard } from "../../common/typeGuards/typeguards";
-import middy from "@middy/core";
+// import middy from "@middy/core";
 
 class GeneratorLambda implements LambdaInterface {
   statusCode: number | undefined;
