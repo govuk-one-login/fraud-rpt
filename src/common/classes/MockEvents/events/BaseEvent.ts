@@ -1,7 +1,6 @@
 import { JsonMockSET } from "../../../interfaces/interfaces";
 import { issSubEventURIs } from "../../../enums/eventsEnums";
 
-
 export class BaseEvent {
   iss: string;
   sub: string;

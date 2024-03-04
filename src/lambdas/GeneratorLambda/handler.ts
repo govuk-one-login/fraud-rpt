@@ -3,25 +3,25 @@ import {
   APIGatewayProxyResult,
   Context,
 } from "aws-lambda";
-import { MockSET } from '../../common/classes/MockSET/MockSET';
+import { MockSET } from "../../common/classes/MockSET/MockSET";
 import {
   sendBatchSqsMessage,
   sqsBatchMessageMaxCount,
-} from '../../common/queues/queues';
-import { SendMessageBatchCommandOutput } from '@aws-sdk/client-sqs';
+} from "../../common/queues/queues";
+import { SendMessageBatchCommandOutput } from "@aws-sdk/client-sqs";
 import { LambdaInterface } from "@aws-lambda-powertools/commons";
-import { Metrics } from '@aws-lambda-powertools/metrics';
+import { Metrics } from "@aws-lambda-powertools/metrics";
 import { FraudLogger, fraudTracer } from "@govuk-one-login/logging/logging";
-import { Logger } from '@aws-lambda-powertools/logger';
-import { captureLambdaHandler } from '@aws-lambda-powertools/tracer';
+import { Logger } from "@aws-lambda-powertools/logger";
+import { captureLambdaHandler } from "@aws-lambda-powertools/tracer";
 import { ErrorMessages } from "../../common/enums/ErrorMessages";
 import { InboundPipelineURLs } from "../../common/enums/InboundPipelineURLs";
-import { LogEvents } from '../../common/enums/Log-events';
+import { LogEvents } from "../../common/enums/Log-events";
 import { ConfigParams } from "../../common/classes/ConfigParams/ConfigParams";
-import { GeneratorResponseBody } from '../../common/interfaces/interfaces';
+import { GeneratorResponseBody } from "../../common/interfaces/interfaces";
 import { Auth } from "../../common/classes/Auth/Auth";
-import { stringTypeGuard } from '../../common/typeGuards/typeguards';
-import middy from '@middy/core';
+import { stringTypeGuard } from "../../common/typeGuards/typeguards";
+import middy from "@middy/core";
 
 class GeneratorLambda implements LambdaInterface {
   statusCode: number | undefined;
@@ -86,16 +86,15 @@ class GeneratorLambda implements LambdaInterface {
         this.fraudLogger.logDebug("Event JSON exists, parsing API parameters");
         await configParams.parseAllApiParams(eventJson);
 
-      // Check the endpoint is active
-      this.fraudLogger.logDebug('Checking endpoint health');
-      await this.inboundEndpointHealthCheck(
-        configParams.configParams.inboundEndpointURL,
-        auth.authToken
-      );
-
+        // Check the endpoint is active
+        this.fraudLogger.logDebug("Checking endpoint health");
+        await this.inboundEndpointHealthCheck(
+          configParams.configParams.inboundEndpointURL,
+          auth.authToken,
+        );
       }
       // Generate and send the SETs
-      this.fraudLogger.logDebug('Generating and sending SETs');
+      this.fraudLogger.logDebug("Generating and sending SETs");
       const responseBody: GeneratorResponseBody =
         await this.generateAndSendSETs(configParams);
 
@@ -105,7 +104,7 @@ class GeneratorLambda implements LambdaInterface {
       this.body = `Generation run results: ${JSON.stringify(responseBody)}`;
     } catch (error: any) {
       this.fraudLogger.logDebug(`Error Stack Trace: ${error.stack}`);
-      this.fraudLogger.logErrorProcessing('No Message ID', error);
+      this.fraudLogger.logErrorProcessing("No Message ID", error);
       this.statusCode = 500;
       this.body = error.message;
     } finally {
@@ -118,7 +117,6 @@ class GeneratorLambda implements LambdaInterface {
     };
   }
 
-
   /**
    *  Send Successfully Processed Event log
    *
@@ -130,8 +128,8 @@ class GeneratorLambda implements LambdaInterface {
     // Generate and send SETs in batches of 10.
     this.fraudLogger.logDebug(
       `generateAndSendSETs - config: ${JSON.stringify(
-        configParams.configParams
-      )}`
+        configParams.configParams,
+      )}`,
     );
 
     let totalFailedMessageAttempts: number = 0;
@@ -150,10 +148,10 @@ class GeneratorLambda implements LambdaInterface {
       // Generate and Send Remaining Messages
       for (let j = 0; j < remainingMessages; j++) {
         this.fraudLogger.logDebug(
-          `Generating and sending ${remainingMessages} remaining messages`
+          `Generating and sending ${remainingMessages} remaining messages`,
         );
         this.fraudLogger.logDebug(
-          `Processing message ${j + 1} of ${remainingMessages}.`
+          `Processing message ${j + 1} of ${remainingMessages}.`,
         );
 
         // new instance of MockSET created
@@ -170,11 +168,11 @@ class GeneratorLambda implements LambdaInterface {
           JSON.stringify({
             SET: mockSET.mockSET,
             destination: configParams.configParams.inboundEndpointURL,
-          })
+          }),
         );
 
         this.fraudLogger.logDebug(
-          `Generated mock SET: ${JSON.stringify(mockSET.mockSET)}`
+          `Generated mock SET: ${JSON.stringify(mockSET.mockSET)}`,
         );
 
         // Max 10 SET's in SQS Message Queue, trigger event at maximum SET count
@@ -185,7 +183,7 @@ class GeneratorLambda implements LambdaInterface {
           numFailedMessageAttempts += requestFailedMessages;
           setArray = [];
           this.fraudLogger.logDebug(
-            `Batch send attempt: Successes - ${requestSuccessfulMessages}, Failures - ${requestFailedMessages}`
+            `Batch send attempt: Successes - ${requestSuccessfulMessages}, Failures - ${requestFailedMessages}`,
           );
         }
       }
@@ -198,7 +196,7 @@ class GeneratorLambda implements LambdaInterface {
         numFailedMessageAttempts += requestFailedMessages;
 
         this.fraudLogger.logDebug(
-          `Batch send attempt: Successes - ${requestSuccessfulMessages}, Failures - ${requestFailedMessages}`
+          `Batch send attempt: Successes - ${requestSuccessfulMessages}, Failures - ${requestFailedMessages}`,
         );
       }
 
@@ -207,7 +205,7 @@ class GeneratorLambda implements LambdaInterface {
       numGenerationAttempts = i + 1;
       if (remainingMessages === 0) {
         this.fraudLogger.logDebug(
-          'All messages sent successfully. No more retries needed.'
+          "All messages sent successfully. No more retries needed.",
         );
         break;
       }
@@ -227,17 +225,17 @@ class GeneratorLambda implements LambdaInterface {
     this.fraudLogger.logDebug(`Final results: ${JSON.stringify(responseBody)}`);
     return responseBody;
   }
-  
+
   /**
    *  Healthcheck for the supplied inbound Shared Signals Framework URL,
    *
    * @param url
    * @param bodyData
-   */  
+   */
 
   public async inboundEndpointHealthCheck(
     endpointURL: string,
-    authToken: string
+    authToken: string,
   ): Promise<void> {
     // Performs an Inbound Endpoint Health-check POST Request to ensure Endpoint can receive signals (JWS messages in our case)
     try {
@@ -245,12 +243,12 @@ class GeneratorLambda implements LambdaInterface {
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
-        method: 'POST',
-        body: 'healthcheck',
+        method: "POST",
+        body: "healthcheck",
       });
       if (!response.ok) {
         throw new Error(
-          `Non-succesful response for ${endpointURL}. Response: ${response.status}, ${response.statusText}`
+          `Non-succesful response for ${endpointURL}. Response: ${response.status}, ${response.statusText}`,
         );
       }
     } catch (error: any) {
@@ -259,7 +257,7 @@ class GeneratorLambda implements LambdaInterface {
   }
 
   public environmentTypeGuard(
-    environment: string
+    environment: string,
   ): environment is keyof typeof InboundPipelineURLs {
     return Object.keys(InboundPipelineURLs).includes(environment);
   }
@@ -270,11 +268,11 @@ class GeneratorLambda implements LambdaInterface {
    * @returns number of successful and failed messages
    */
   public async handleSendRequest(
-    setArray: string[]
+    setArray: string[],
   ): Promise<[number, number]> {
     // Invoke the send request
     this.fraudLogger.logDebug(
-      `handleSendRequest - Sending a batch of ${setArray.length} SQS messages.`
+      `handleSendRequest - Sending a batch of ${setArray.length} SQS messages.`,
     );
 
     setArray.forEach((set) => {
@@ -286,7 +284,7 @@ class GeneratorLambda implements LambdaInterface {
       await sendBatchSqsMessage(setArray, this.queueUrl);
 
     this.fraudLogger.logSETBatchGeneration(
-      await this.getSuccessDegree(messageResponses)
+      await this.getSuccessDegree(messageResponses),
     );
 
     // Count successful and failed messages
@@ -295,10 +293,10 @@ class GeneratorLambda implements LambdaInterface {
       messageResponses.Successful?.length ?? 0;
 
     this.fraudLogger.logDebug(
-      `handleSendRequest - Successful messages: ${numSuccessfulMessages}`
+      `handleSendRequest - Successful messages: ${numSuccessfulMessages}`,
     );
     this.fraudLogger.logDebug(
-      `handleSendRequest - Failed messages: ${numFailedMessages}`
+      `handleSendRequest - Failed messages: ${numFailedMessages}`,
     );
 
     // Check for errors
@@ -318,24 +316,24 @@ class GeneratorLambda implements LambdaInterface {
    * @returns a tuple with the log event and message ids for the logger call
    */
   public async getSuccessDegree(
-    messageResponses: SendMessageBatchCommandOutput
+    messageResponses: SendMessageBatchCommandOutput,
   ): Promise<[LogEvents, string[], string[]]> {
     // get Ids into seperate arrays
     const successfulMessageIds: string[] =
       messageResponses.Successful?.map((response) => response.MessageId).filter(
-        stringTypeGuard
+        stringTypeGuard,
       ) ?? [];
 
     const failedBatchIds: string[] =
       messageResponses.Failed?.map((response) => response.Id).filter(
-        stringTypeGuard
+        stringTypeGuard,
       ) ?? [];
 
     this.fraudLogger.logDebug(
-      `getSuccessDegree - Processed successful messages: ${successfulMessageIds.length}`
+      `getSuccessDegree - Processed successful messages: ${successfulMessageIds.length}`,
     );
     this.fraudLogger.logDebug(
-      `getSuccessDegree - Processed failed messages: ${failedBatchIds.length}`
+      `getSuccessDegree - Processed failed messages: ${failedBatchIds.length}`,
     );
 
     // default to all successful
@@ -388,10 +386,10 @@ export const generatorLambda: GeneratorLambda = new GeneratorLambda(
       serviceName: process.env.LAMBDA_NAME,
       namespace: process.env.POWERTOOLS_METRICS_NAMESPACE,
     }),
-    process.env.ENVIRONMENT as string
-  )
+    process.env.ENVIRONMENT as string,
+  ),
 );
 
 export const handler = middy(generatorLambda.handler.bind(generatorLambda)).use(
-  captureLambdaHandler(fraudTracer)
+  captureLambdaHandler(fraudTracer),
 );

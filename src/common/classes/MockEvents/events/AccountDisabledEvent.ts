@@ -2,7 +2,6 @@ import { EventTypes } from "../../../enums/eventsEnums";
 import { JsonMockSET } from "../../../interfaces/interfaces";
 import { BaseEvent } from "./BaseEvent";
 
-
 export class AccountDisabledEvent extends BaseEvent {
   constructor(mockSet: JsonMockSET) {
     super(EventTypes.AccountDisabled, mockSet);
@@ -17,7 +16,6 @@ export class AccountDisabledEvent extends BaseEvent {
     return {
       [this.eventURI]: {
         subject: {
-
           subject_type: "iss_sub",
           iss: this.iss,
           sub: this.sub,

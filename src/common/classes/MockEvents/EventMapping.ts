@@ -32,5 +32,4 @@ export const EventMapping: Record<
     new BaseEvent(EventTypes.RecoveryInformationChanged, message),
   [EventTypes.SessionsRevoked]: (message: JsonMockSET) =>
     new BaseEvent(EventTypes.SessionsRevoked, message),
-
 };
