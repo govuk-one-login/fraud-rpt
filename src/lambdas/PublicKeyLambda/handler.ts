@@ -3,7 +3,7 @@ import {
   APIGatewayProxyResult,
   Context,
 } from "aws-lambda";
-//import { FraudLogger, fraudTracer } from '@govuk-one-login/logging/logging';
+import { FraudLogger, fraudTracer } from "@govuk-one-login/logging/logging";
 
 import { LambdaInterface } from "@aws-lambda-powertools/commons/lib/utils/lambda";
 import { LogEvents } from "../../common/enums/Log-events";
@@ -14,7 +14,7 @@ import { PublicKeyLambdaResponse } from "../../common/interfaces/interfaces";
 import { ParameterNames, ssmParams } from "../../common/classes/SSM/SSMParams";
 
 class PublicKeyLambda implements LambdaInterface {
-  //    constructor(public fraudLogger: FraudLogger) {}
+  constructor(public fraudLogger: FraudLogger) {}
 
   /**
    *  Triggered from APIGateway request. Retrieves public key from KMS and returns to calling client
@@ -27,7 +27,7 @@ class PublicKeyLambda implements LambdaInterface {
     context: Context,
   ): Promise<APIGatewayProxyResult> {
     try {
-      //        this.fraudLogger.logMessage(LogEvents.PublicKeyRequested);
+      this.fraudLogger.logMessage(LogEvents.PublicKeyRequested);
       const [publicKeyArn]: string[] = await ssmParams.getParams([
         ParameterNames.PublicKeyArn,
       ]);
@@ -45,10 +45,10 @@ class PublicKeyLambda implements LambdaInterface {
         body: publicKeyString,
       };
 
-      //        this.fraudLogger.logMessage(LogEvents.PublicKeyReturned);
+      this.fraudLogger.logMessage(LogEvents.PublicKeyReturned);
       return response;
     } catch (error: any) {
-      //        this.fraudLogger.logErrorProcessing(error);
+      this.fraudLogger.logErrorProcessing(error);
       const errorResponse: PublicKeyLambdaResponse = {
         statusCode: 500,
         body: LogEvents.PublicKeyRequestFail,
