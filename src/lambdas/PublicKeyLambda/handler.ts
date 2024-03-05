@@ -4,7 +4,7 @@ import {
   Context,
 } from "aws-lambda";
 
-// import { FraudLogger, fraudTracer } from '@govuk-one-login/logging/logging';
+import { FraudLogger, fraudTracer } from "@govuk-one-login/logging/logging";
 import { Logger } from "@aws-lambda-powertools/logger";
 import { Metrics } from "@aws-lambda-powertools/metrics";
 import { LambdaInterface } from "@aws-lambda-powertools/commons/lib/utils/lambda";
@@ -18,7 +18,7 @@ import { captureLambdaHandler } from "@aws-lambda-powertools/tracer";
 import middy from "@middy/core";
 
 class PublicKeyLambda implements LambdaInterface {
-  //  constructor(public fraudLogger: FraudLogger) {}
+  constructor(public fraudLogger: FraudLogger) {}
 
   /**
    *  Triggered from APIGateway request. Retrieves public key from KMS and returns to calling client
@@ -31,7 +31,7 @@ class PublicKeyLambda implements LambdaInterface {
     context: Context,
   ): Promise<APIGatewayProxyResult> {
     try {
-      //      this.fraudLogger.logMessage(LogEvents.PublicKeyRequested);
+      this.fraudLogger.logMessage(LogEvents.PublicKeyRequested);
       const [publicKeyArn]: string[] = await ssmParams.getParams([
         ParameterNames.PublicKeyArn,
       ]);
@@ -48,31 +48,31 @@ class PublicKeyLambda implements LambdaInterface {
         body: publicKeyString,
       };
 
-      //  this.fraudLogger.logMessage(LogEvents.PublicKeyReturned);
+      this.fraudLogger.logMessage(LogEvents.PublicKeyReturned);
       return response;
     } catch (error: any) {
-      //      this.fraudLogger.logErrorProcessing(error);
+      this.fraudLogger.logErrorProcessing(error);
       const errorResponse: PublicKeyLambdaResponse = {
         statusCode: 500,
-        //        body: LogEvents.PublicKeyRequestFail,
+        body: LogEvents.PublicKeyRequestFail,
       };
       return errorResponse;
     }
   }
 }
 
-// export const publicKeyLambda: PublicKeyLambda = new PublicKeyLambda(
-// //  new FraudLogger(
-//     new Logger(),
-//     new Metrics({
-//       serviceName: process.env.LAMBDA_NAME,
-//       namespace: process.env.POWERTOOLS_METRICS_NAMESPACE,
-//     }),
-//     process.env.ENVIRONMENT
-//   ),
-//   new SSMClient()
-// );
+export const publicKeyLambda: PublicKeyLambda = new PublicKeyLambda(
+  new FraudLogger(
+    new Logger(),
+    new Metrics({
+      serviceName: process.env.LAMBDA_NAME,
+      namespace: process.env.POWERTOOLS_METRICS_NAMESPACE,
+    }),
+    process.env.ENVIRONMENT,
+  ),
+  new SSMClient(),
+);
 
-// export const handler = middy(publicKeyLambda.handler.bind(publicKeyLambda)).use(
-// //  captureLambdaHandler(fraudTracer)
-// );
+export const handler = middy(publicKeyLambda.handler.bind(publicKeyLambda)).use(
+  captureLambdaHandler(fraudTracer),
+);
