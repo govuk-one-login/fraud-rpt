@@ -69,4 +69,4 @@ describe("PublicKeyLambda", () => {
     expect(response.statusCode).toBe(500);
     expect(response.body).toEqual(LogEvents.PublicKeyRequestFail);
   });
-
+});
