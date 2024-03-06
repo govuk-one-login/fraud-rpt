@@ -1,6 +1,6 @@
 # The Relying Party Transmitter
 
-The Relying Party Transmitter (RPT) application demonstrates how a [Security Event Token](https://datatracker.ietf.org/doc/html/rfc8417) (SET) can be sent from Relying Parties (RPs) to the Transmitter in the Shared Signals Framework (SSF) using a severless function, known as the Transmitter function. This function signs and encrypts a Security Event Token and forwards it to the Shared Signals Framework endpoint.
+The Relying Party Transmitter (RPT) application demonstrates how a [Security Event Token](https://datatracker.ietf.org/doc/html/rfc8417) (SET) can be sent from Relying Parties (RPs) to the Transmitter in the Shared Signals Framework (SSF) using a severless function, known as the Transmitter function. This function signs and encrypts a SET and forwards it to the Shared Signals Framework endpoint.
 
 Helper functions have been added for the purpose of testing the Transmitter function. The Generator function generates test cases of messages to pass on and the public key function simulates an RP's endpoint for serving their public key.
 
@@ -10,9 +10,9 @@ Though this implementation uses serverless functions in AWS (AWS Lambda), the ap
 
 ## Background
 
-A Security Event Token is issued on a state change of a security subject, for example a user account or an HTTP session. When the Shared Signals Transmitter endpoint receives a SET, it will validate and interpret the received Security Event Token and takes its own independent actions, if any.
+A SET is issued on a state change of a security subject, for example a user account or an HTTP session. When the Shared Signals Transmitter endpoint receives a SET, it will validate and interpret the received SET and takes its own independent actions, if any.
 
-An example Security Event Token:
+An example SET:
 
 ```json
 {
@@ -34,7 +34,7 @@ An example Security Event Token:
 }
 ```
 
-The Security Event Token format extends the JSON Web Token (JWT) format which describes claims. The claims in a Security Event Token are described in [RFC8417](https://datatracker.ietf.org/doc/html/rfc8417) and describe the security event that has taken place, the issuer, the subject and the intended audience of the event.
+The SET format extends the JSON Web Token (JWT) format which describes claims. The claims in a SET are described in [RFC8417](https://datatracker.ietf.org/doc/html/rfc8417) and describe the security event that has taken place, the issuer, the subject and the intended audience of the event.
 
 A JWT can be represented as:
 
@@ -45,11 +45,11 @@ A JWT can be represented as:
 
 ## Transmitter function
 
-The Transmitter function signs and encrypts a Security Event Token and forwards it to the Shared Signals Framework (SSF) Transmitter endpoint. It is triggered when a message is received from the Generator function.
+The Transmitter function signs and encrypts a SET and forwards it to the Shared Signals Framework (SSF) Transmitter endpoint. It is triggered when a message is received from the Generator function.
 
 This function:
 
-1. Signs the Security Event Token, using a private key as the signature. The signed SET and signature are used to generate a JWS object. The SSF endpoint will use the corresponding public key to verify the signature.
+1. Signs the SET, using a private key as the signature. The signed SET and signature are used to generate a JWS object. The SSF endpoint will use the corresponding public key to verify the signature.
 2. Encrypts the JWS, using the full JWS object as the message:
    1. Generates a random Content Encryption Key (CEK).
    2. Encrypt the CEK with the RP's public key to form the JWE encrypted key.
@@ -77,7 +77,7 @@ Settings provided to the API determines the number of messages to send, the rati
 
 ### Public Key function
 
-The Public Key function is triggered by an API call to retrive the public key used by the Inbound-SSF to verify the Security Event Token.
+The Public Key function is triggered by an API call to retrive the public key used by the Inbound-SSF to verify the SET.
 
 This function:
 
