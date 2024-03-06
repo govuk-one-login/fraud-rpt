@@ -4,7 +4,7 @@ The Relying Party Transmitter (RPT) application demonstrates how a [Security Eve
 
 Helper functions have been added for the purpose of testing the Transmitter function. The Generator function generates test cases of messages to pass on and the public key function simulates an RP's endpoint for serving their public key.
 
-Though this implementation uses serverless functions in AWS (AWS Lambda), the approach described is platform independent.
+Though this implementation uses serverless functions in AWS (AWS Lambda), the approach described is platform-independent.
 
 ![Architecture of the RPT](/READMEresources/MainArchitecture.png)
 
