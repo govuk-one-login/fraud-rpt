@@ -3,6 +3,7 @@ import {
   APIGatewayProxyResult,
   Context,
 } from "aws-lambda";
+import { FraudLogger, fraudTracer } from "@govuk-one-login/logging/logging";
 
 import { FraudLogger, fraudTracer } from "@govuk-one-login/logging/logging";
 import { Logger } from "@aws-lambda-powertools/logger";
