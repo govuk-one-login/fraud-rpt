@@ -1,12 +1,10 @@
 import { ErroneousJsonMockSET, JsonMockSET } from "../../interfaces/interfaces";
-import { MockRP } from "./MockRP";
+import { MockRPs } from "./MockRPs";
 import { EventTypes, validEventKeys } from "../../enums/eventsEnums";
 import { EventMapping } from "../MockEvents/EventMapping";
 import { BaseEvent } from "../MockEvents/events/BaseEvent";
 export class MockSET {
   mockSET: JsonMockSET | ErroneousJsonMockSET;
-
-  // Set aud AKA Audience to be the URL for the inbound endpoint that is being transmitted towards
 
   constructor() {
     this.mockSET = {
@@ -77,17 +75,17 @@ export class MockSET {
    * @param rpSplit is the probability ratio of messages to come from the 3 mock rps
    */
   public async adjustRpOfOrigin(rpSplit: Array<number>): Promise<void> {
-    const MockRPKeys: Array<keyof typeof MockRP> = Object.keys(
-      MockRP,
-    ) as unknown as Array<keyof typeof MockRP>;
+    const MockRPsKeys: Array<keyof typeof MockRPs> = Object.keys(
+      MockRPs,
+    ) as unknown as Array<keyof typeof MockRPs>;
 
-    const chosenRP: keyof typeof MockRP = await this.weightedChoiceFromArray<
-      keyof typeof MockRP
-    >(MockRPKeys, rpSplit);
+    const chosenRP: keyof typeof MockRPs = await this.weightedChoiceFromArray<
+      keyof typeof MockRPs
+    >(MockRPsKeys, rpSplit);
 
-    this.mockSET.iss = MockRP[chosenRP].publicKeyURL;
+    this.mockSET.iss = MockRPs[chosenRP].publicKeyURL;
 
-    const userPairwiseIDs = MockRP[chosenRP].userPairwiseIDs;
+    const userPairwiseIDs = MockRPs[chosenRP].userPairwiseIDs;
     const userPairwiseIDsKeys: Array<string> = Object.keys(userPairwiseIDs);
     const chosenUser = userPairwiseIDsKeys[
       Math.floor(Math.random() * userPairwiseIDsKeys.length)
