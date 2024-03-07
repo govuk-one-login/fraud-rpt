@@ -24,6 +24,15 @@ jobs:
         with:
           fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
 
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          registry-url: "https://npm.pkg.github.com/"
+          scope: "@govuk-one-login"
+          cache: npm
+          always-auth: true
+
       - name: Install Dependancies
         run: npm install
         env:

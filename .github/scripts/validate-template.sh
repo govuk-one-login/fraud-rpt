@@ -1,0 +1,17 @@
+shopt -s extglob nullglob
+set -eu -o pipefail
+
+: "${TEMPLATE:-}"            # The template to validate
+: "${AWS_REGION:=eu-west-2}" # The AWS region to use when validating
+
+[[ -z ${TEMPLATE:-} ]] && ! [[ -f $(echo template.@(yml|yaml|json)) ]] && exit
+
+BASE_DIR="$(dirname "${BASH_SOURCE[0]}")"
+REPORT="$BASE_DIR"/print-file.sh
+OUTPUT="$RUNNER_TEMP"/validate.output
+RESULTS="$RUNNER_TEMP"/validate.results
+
+sam validate --template "$TEMPLATE" --lint | tee "$OUTPUT" || cat "$OUTPUT" >> "$RESULTS"
+
+[[ -s $RESULTS ]] || exit 0
+FILE=$RESULTS TITLE="SAM validation" LANGUAGE=shell CODE_BLOCK=true $REPORT >> "$GITHUB_STEP_SUMMARY" && exit 1

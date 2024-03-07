@@ -20,6 +20,15 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          registry-url: "https://npm.pkg.github.com/"
+          scope: "@govuk-one-login"
+          cache: npm
+          always-auth: true
+
       - name: Run Tests
         run: |
           npm ci
