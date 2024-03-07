@@ -22,21 +22,10 @@ Parameters:
     Description: >
       The ARN of the permissions boundary to apply to any role created by the template
     Default: "none"
-  BranchName:
-    Type: String
-    Description: "Name of the branch to be deployed"
-    Default: "main"
 
 Conditions:
   UseCodeSigning: !Not [!Equals [!Ref CodeSigningConfigArn, "none"]]
   UsePermissionsBoundary: !Not [!Equals [!Ref PermissionsBoundary, "none"]]
-  onMainBranch: !Equals [!Ref "BranchName", "main"]
-  IsDevOrBuildEnv: !Or
-    - !Equals [!Ref Environment, "development"]
-    - !Equals [!Ref Environment, "build"]
-  BuildPairwiseResources: !And
-    - Condition: onMainBranch
-    - Condition: IsDevOrBuildEnv
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -197,10 +186,6 @@ Resources:
       Environment:
         Variables:
           LAMBDA_NAME: TransmitterLambda
-          JWS_SIGN_ARN:
-            !FindInMap [JWSSignKMSARNs, Environment, !Ref Environment]
-          JWE_PUBLIC_KEY_ARN:
-            !FindInMap [JWEGetPublicKeyKMSARNs, Environment, !Ref Environment]
           ENVIRONMENT: !Sub ${Environment}
       Architectures:
         - arm64
@@ -238,30 +223,12 @@ Resources:
               - kms:Sign
             Resource: !FindInMap [JWSSignKMSARNs, Environment, !Ref Environment]
         - Statement:
-            Sid: KMSGetPublicKeyPermissions
-            Effect: Allow
-            Action:
-              - kms:GetPublicKey
-            Resource:
-              !FindInMap [JWEGetPublicKeyKMSARNs, Environment, !Ref Environment]
-        - Statement:
             Sid: assumeKMSSignRole
             Effect: Allow
             Action:
               - sts:AssumeRole
             Resource:
               !FindInMap [JWSSignRoleARNs, Environment, !Ref Environment]
-        - Statement:
-            Sid: assumeKMSGetPublicKeyRole
-            Effect: Allow
-            Action:
-              - sts:AssumeRole
-            Resource:
-              !FindInMap [
-                JWEGetPublicKeyRoleARNs,
-                Environment,
-                !Ref Environment,
-              ]
         - SSMParameterWithSlashPrefixReadPolicy:
             ParameterName: !Sub "/${Environment}/ssf/SSFUserPoolClientId"
         - SSMParameterWithSlashPrefixReadPolicy:
