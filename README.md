@@ -53,10 +53,10 @@ This function:
 2. Encrypts the JWS, using the full JWS object as the message:
    1. Generates a random Content Encryption Key (CEK).
    2. Encrypt the CEK with the RP's public key to form the JWE encrypted key.
-   3. Generates a random JWE inititilization vector.
+   3. Generates a random JWE initilization vector.
    4. Generates a header based on the algorithms chosen for encrypting for the CEK and the message.
-   5. Generates the AAD encryption value based on the header.
-   6. Encrypts the message using the CEK, JWE Initialization Vector and the ADD value. An authentication tag is producted as an artifact of this process.
+   5. Generates the Additional Authenticated Data (AAD) encryption value based on the header.
+   6. Encrypts the message using the CEK, JWE Initialization Vector and the AAD value. An authentication tag is producted as an artifact of this process.
    7. Based64url-encodes each component to form a JWE formatted object.
 3. Sends the JWE to the SSF endpoint.
 
