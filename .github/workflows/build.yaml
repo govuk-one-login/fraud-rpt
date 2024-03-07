@@ -57,14 +57,27 @@ jobs:
       - name: Prevent SAM From Runnning Unit Tests
         run: rm -Rf -- *.test.*
 
+      - name: Validate SAM template
+        shell: bash
+        env:
+          AWS_REGION: ${{ inputs.region }}
+          TEMPLATE: ${{ inputs.sam-template-file }}
+          VALIDATE: ./.github/scripts/validate-template.sh
+        run: $VALIDATE
+
       - name: Build SAM Application
-        uses: alphagov/di-github-actions/sam/build-application@c6ee88734260ae374365bbe2b76ebe2553b3df19
-        with:
-          disable-cache: true
-          enable-beta-features: true
-          sam-template-file: ${{ inputs.sam-template-file }}
-          aws-role-arn: ${{ secrets.aws-role-arn }}
-          aws-region: ${{ inputs.region }}
+        shell: bash
+        env:
+          TEMPLATE_FILE: ${{ inputs.sam-template-file }}
+          BETA_FEATURES: true
+          PARALLEL: true
+          CACHE: false
+        run: |
+          sam build \
+            ${TEMPLATE_FILE:+--template-file "$TEMPLATE_FILE"} \
+            "$($PARALLEL && echo "--parallel")" \
+            "$($CACHE && echo "--cached" || echo "--no-cached")" \
+            "$($BETA_FEATURES && echo "--beta-features")"
 
       - name: Upload SAM Build Artifact
         uses: actions/upload-artifact@v3
