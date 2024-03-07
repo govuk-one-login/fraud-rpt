@@ -12,29 +12,29 @@ Though this implementation uses serverless functions in AWS (AWS Lambda), the ap
 
 A SET is issued on a state change of a security subject, for example a user account or an HTTP session. When the Shared Signals Transmitter endpoint receives a SET, it will validate and interpret the received SET and takes its own independent actions, if any.
 
+The SET format extends the JSON Web Token (JWT) format which describes claims. The claims in a SET are described in [RFC8417](https://datatracker.ietf.org/doc/html/rfc8417) and describe the security event that has taken place, the issuer, the subject and the intended audience of the event.
+
 An example SET:
 
 ```json
 {
-   "SET": {
-      "iss": "https://issuer.digitalIdentity.gov/",
-      "jti": "756e697175654964656e74696669657230",
-      "iat": 1520364019,
-      "aud": "https://audience.hmrc.gov/",
-      "events": {
-      "https://schemas.digitalIdentity.gov/secevent/risc/event-type/ipv-spot-request-recieved": {
-         "subject": {
-            "format": "iss_sub",
-            "iss": "https://issuer.digitalIdentity.gov/",
-            "sub": "aPairwiseId"
-            }
-         }
+    "iss": "https://idp.example.com/",
+    "jti": "756E69717565206964656E746966696572",
+    "iat": 1508184845,
+    "aud": "636C69656E745F6964",
+    "events": {
+  "https://schemas.openid.net/secevent/risc/event-type/account-disabled"
+          : {
+        "subject": {
+          "subject_type": "iss-sub",
+          "iss": "https://idp.example.com/",
+          "sub": "7375626A656374"
+        },
+        "reason": "hijacking"
       }
-   }
-}
+    }
+  }
 ```
-
-The SET format extends the JSON Web Token (JWT) format which describes claims. The claims in a SET are described in [RFC8417](https://datatracker.ietf.org/doc/html/rfc8417) and describe the security event that has taken place, the issuer, the subject and the intended audience of the event.
 
 A JWT can be represented as:
 
