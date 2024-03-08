@@ -158,16 +158,15 @@ For this project, AWS Powertools has been configured to log events from each ser
 We recommend installing the following tools:
 
 - [VS Code](https://code.visualstudio.com/download) as a preferred IDE for its extensions with AWS
-- [Serverless Application Mode (SAM) CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
-- [Node.js](https://nodejs.org/en/), including npm.
-- [Docker](https://docs.docker.com/desktop/)
-- [pre-commit](https://pre-commit.com) to run pre-commit hooks
+- [Serverless Application Mode (SAM) CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) to build and deploy applications in AWS through the CLI rather than the Web UI
+- [Node.js](https://nodejs.org/en/) to build the serverless functions in Typescript
+- [Docker](https://docs.docker.com/desktop/)s
+- [pre-commit](https://pre-commit.com) to run the project's recommended pre-commit hooks
 
 ### Configure recommended developer tools
 
-- Run `pre-commit install` to install pre-commit hooks
-- Install the [AWS Toolkit extension for VS Code](https://docs.aws.amazon.com/toolkit-for-vscode/latest/userguide/welcome.html)
-- The AWS Toolkit can be connected through SSO using `aws configure sso` and then selecting the correct profile at the bottom of VSCode.
-- Install the [SonarLint extension for VS Code](https://marketplace.visualstudio.com/items?itemName=SonarSource.sonarlint-vscode)
-- SonarLint should be connected through the `Connected Mode` it offers.
-- Once it has been connected, creating the binding of your local repo to the di-fraud-mock-rp repo on SonarCloud
+- Run `pre-commit install` to install project's pre-commit hooks to improve security and write cleaner code
+- Install the [AWS Toolkit extension for VS Code](https://docs.aws.amazon.com/toolkit-for-vscode/latest/userguide/welcome.html) for a more integrated experience with AWS
+  - To connect the toolkit to your AWS account, run `aws configure sso`
+- Install the [SonarLint extension for VS Code](https://marketplace.visualstudio.com/items?itemName=SonarSource.sonarlint-vscode) as a Typescript linter
+  - Use Connected Mode to bind your local repository to the remote repository on SonarCloud
