@@ -1,6 +1,6 @@
 # The Relying Party Transmitter
 
-The Relying Party Transmitter (RPT) application demonstrates how a [Security Event Token](https://datatracker.ietf.org/doc/html/rfc8417) (SET) can be sent from Relying Parties (RPs) to the Transmitter in the Shared Signals Framework (SSF) using a severless function, known as the Transmitter function. This function signs and encrypts a SET and forwards it to the Shared Signals Framework endpoint.
+The Relying Party Transmitter (RPT) application demonstrates how a [Security Event Token](https://datatracker.ietf.org/doc/html/rfc8417) (SET) can be sent from Relying Parties (RPs) to the Transmitter in the Shared Signals Framework (SSF) using a severless function, known as the Transmitter function. This function signs and encrypts a SET and forwards it to the SSF Transmitter endpoint.
 
 Helper functions have been added for the purpose of testing the Transmitter function. The Generator function generates test cases of messages to pass on and the public key function simulates an RP's endpoint for serving their public key.
 
@@ -12,7 +12,7 @@ A SET is issued on a state change of a security subject, for example a user acco
 
 The SET format extends the JSON Web Token (JWT) format which describes claims. The claims in a SET are described in [RFC8417](https://datatracker.ietf.org/doc/html/rfc8417) and describe the security event that has taken place, the issuer, the subject and the intended audience of the event.
 
-An example SET used when an account has been disable:
+An example SET used when an account has been disabled:
 
 ```json
 {
@@ -47,7 +47,7 @@ A JWT can be represented as:
 
 ## Transmitter function
 
-The Transmitter function signs and encrypts a SET and forwards it to the Shared Signals Framework (SSF) Transmitter endpoint. It is triggered when a message is received from the Generator function.
+The Transmitter function signs and encrypts a SET and forwards it to the SSF Transmitter endpoint. It is triggered when a SET is received.
 
 This function:
 
