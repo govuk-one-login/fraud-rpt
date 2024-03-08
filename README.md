@@ -75,7 +75,11 @@ This function:
 - regenerates and resends failed messages
 - logs the number of successful and failed messages, with the parameters
 
-Settings provided to the API determines the number of messages to send, the ratio of each [event type](#event-types), the error rate a generated SET and the endpoint of the SSF pipeline to use.
+Settings provided to the API determines the number of messages to send, the ratio of each event type, the error rate for generating a valid SET and the endpoint of the SSF pipeline to use.
+
+For this application, AWS Simple Queue Servce (SQS) queues are used between the Generator and Transmitter functions. The Generator Lambda outputs events into the SETTransmitterQueue, which is used as an event source for the Transmitter Lambda.
+
+All SQS queues have Dead Letter Queues (DLQ) associated with them. If a message fails to be processed by the Generator Lambda, it will retry for a number of times setout by the queue redrive policy. Once this has been reached, the message will then be transferred to the DLQ associated with the queue.
 
 ### Public Key function
 
