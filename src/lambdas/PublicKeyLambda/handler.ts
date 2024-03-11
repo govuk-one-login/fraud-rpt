@@ -69,7 +69,6 @@ export const publicKeyLambda: PublicKeyLambda = new PublicKeyLambda(
     }),
     process.env.ENVIRONMENT,
   ),
-  new SSMClient(),
 );
 
 export const handler = middy(publicKeyLambda.handler.bind(publicKeyLambda)).use(
