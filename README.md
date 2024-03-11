@@ -67,7 +67,7 @@ npm i
 Build your application with the `sam build` command.
 
 ```bash
-sam build --template template-mock-rp.yaml --region eu-west-2
+sam build --template template-rpt.yaml --region eu-west-2
 ```
 
 To run functions locally you can invoke them with the `sam local invoke` command.

@@ -12,7 +12,7 @@ import { SendMessageBatchCommandOutput } from "@aws-sdk/client-sqs";
 import { LambdaInterface } from "@aws-lambda-powertools/commons";
 import { Metrics } from "@aws-lambda-powertools/metrics";
 // import { FraudLogger, fraudTracer } from "@govuk-one-login/logging/logging";
-import { Logger } from "@aws-lambda-powertools/logger";
+// import { Logger } from "@aws-lambda-powertools/logger";
 import { captureLambdaHandler } from "@aws-lambda-powertools/tracer";
 import { ErrorMessages } from "../../common/enums/ErrorMessages";
 import { InboundPipelineURLs } from "../../common/enums/InboundPipelineURLs";

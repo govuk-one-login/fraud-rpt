@@ -4,8 +4,6 @@ import {
   Context,
 } from "aws-lambda";
 import { FraudLogger, fraudTracer } from "@govuk-one-login/logging/logging";
-
-import { FraudLogger, fraudTracer } from "@govuk-one-login/logging/logging";
 import { Logger } from "@aws-lambda-powertools/logger";
 import { Metrics } from "@aws-lambda-powertools/metrics";
 import { LambdaInterface } from "@aws-lambda-powertools/commons/lib/utils/lambda";
