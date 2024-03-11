@@ -226,36 +226,6 @@ class GeneratorLambda implements LambdaInterface {
     return responseBody;
   }
 
-  /**
-   *  Healthcheck for the supplied inbound Shared Signals Framework URL,
-   *
-   * @param url
-   * @param bodyData
-   */
-
-  public async inboundEndpointHealthCheck(
-    endpointURL: string,
-    authToken: string,
-  ): Promise<void> {
-    // Performs an Inbound Endpoint Health-check POST Request to ensure Endpoint can receive signals (JWS messages in our case)
-    try {
-      const response: Response = await fetch(endpointURL, {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-        method: "POST",
-        body: "healthcheck",
-      });
-      if (!response.ok) {
-        throw new Error(
-          `Non-succesful response for ${endpointURL}. Response: ${response.status}, ${response.statusText}`,
-        );
-      }
-    } catch (error: any) {
-      throw new Error(`Healthcheck for ${endpointURL} failed: ${error}`);
-    }
-  }
-
   public environmentTypeGuard(
     environment: string,
   ): environment is keyof typeof InboundPipelineURLs {

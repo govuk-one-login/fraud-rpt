@@ -21,8 +21,8 @@ describe("configParams", () => {
     const configParams: ConfigParams = new ConfigParams(environment);
     const schema = {
       numMessages: expect.any(Number),
-      rpSplit: expect.any(Array<Number>),
-      eventTypeSplit: expect.any(Array<Number>),
+      rpSplit: expect.any(Array<number>),
+      eventTypeSplit: expect.any(Array<number>),
       errorRate: expect.any(Number),
     };
     expect(configParams.configParams).toMatchObject(schema);
