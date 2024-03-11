@@ -39,7 +39,7 @@ jobs:
     with:
       region: ${{ vars.AWS_REGION }}
       stack-name-length: 24
-      stack-name-prefix: rp
+      stack-name-prefix: rpt
     secrets:
       aws-role-arn: ${{ secrets.GH_ACTIONS_ROLE_ARN }}
       sam-deployment-bucket: ${{ secrets.ARTIFACT_BUCKET_NAME }}

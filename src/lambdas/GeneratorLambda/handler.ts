@@ -11,8 +11,8 @@ import {
 import { SendMessageBatchCommandOutput } from "@aws-sdk/client-sqs";
 import { LambdaInterface } from "@aws-lambda-powertools/commons";
 import { Metrics } from "@aws-lambda-powertools/metrics";
-// import { FraudLogger, fraudTracer } from "@govuk-one-login/logging/logging";
-// import { Logger } from "@aws-lambda-powertools/logger";
+import { FraudLogger, fraudTracer } from "@govuk-one-login/logging/logging";
+import { Logger } from "@aws-lambda-powertools/logger";
 import { captureLambdaHandler } from "@aws-lambda-powertools/tracer";
 import { ErrorMessages } from "../../common/enums/ErrorMessages";
 import { InboundPipelineURLs } from "../../common/enums/InboundPipelineURLs";
@@ -21,7 +21,7 @@ import { ConfigParams } from "../../common/classes/ConfigParams/ConfigParams";
 import { GeneratorResponseBody } from "../../common/interfaces/interfaces";
 import { Auth } from "../../common/classes/Auth/Auth";
 import { stringTypeGuard } from "../../common/typeGuards/typeguards";
-// import middy from "@middy/core";
+import middy from "@middy/core";
 
 class GeneratorLambda implements LambdaInterface {
   statusCode: number | undefined;
@@ -224,36 +224,6 @@ class GeneratorLambda implements LambdaInterface {
 
     this.fraudLogger.logDebug(`Final results: ${JSON.stringify(responseBody)}`);
     return responseBody;
-  }
-
-  /**
-   *  Healthcheck for the supplied inbound Shared Signals Framework URL,
-   *
-   * @param url
-   * @param bodyData
-   */
-
-  public async inboundEndpointHealthCheck(
-    endpointURL: string,
-    authToken: string,
-  ): Promise<void> {
-    // Performs an Inbound Endpoint Health-check POST Request to ensure Endpoint can receive signals (JWS messages in our case)
-    try {
-      const response: Response = await fetch(endpointURL, {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-        method: "POST",
-        body: "healthcheck",
-      });
-      if (!response.ok) {
-        throw new Error(
-          `Non-succesful response for ${endpointURL}. Response: ${response.status}, ${response.statusText}`,
-        );
-      }
-    } catch (error: any) {
-      throw new Error(`Healthcheck for ${endpointURL} failed: ${error}`);
-    }
   }
 
   public environmentTypeGuard(
