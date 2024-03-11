@@ -1,5 +1,4 @@
 import { JWSComponents } from "../../../common/interfaces/interfaces";
-import { fraudTracer } from "../../logging/logging";
 import { KeyManager } from "../keys/keys";
 
 export const toBase64Url = (data: any, stringify: boolean = true) => {
@@ -13,7 +12,6 @@ export class JWS {
    * @param payloadData - the data to be converted to base64url, and set to the `payload` variable in `JWSComponents`
    * @returns a built `JWS` in a `JWSComponents` object
    */
-  @fraudTracer.captureMethod()
   public static async build(payloadData: string): Promise<JWSComponents> {
     let jws = {
       header: toBase64Url({ alg: "RS256", typ: "secevent+jwt" }),
@@ -33,7 +31,6 @@ export class JWS {
    * @param jws The `JWSComponents` object to convert
    * @returns A string-ified version of `JWSComponents`
    */
-  @fraudTracer.captureMethod()
   public static async toString(jws: JWSComponents): Promise<string> {
     return jws.header + "." + jws.payload + "." + jws.signature;
   }

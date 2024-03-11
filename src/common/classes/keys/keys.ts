@@ -4,7 +4,7 @@ import {
   SignCommand,
 } from "@aws-sdk/client-kms";
 import * as crypto from "crypto";
-import { fraudTracer } from "../../logging/logging";
+import { fraudTracer } from "@govuk-one-login/logging/logging";
 
 export class KeyManager {
   private static kmsClient: KMSClient = fraudTracer.captureAWSv3Client(
@@ -17,7 +17,6 @@ export class KeyManager {
    * Using `AWS KMS`, retrieve a public key and return it
    * @returns the public key
    */
-  @fraudTracer.captureMethod()
   public static async getPublicKeyFromKMS(
     keyId: string,
   ): Promise<crypto.KeyObject> {
@@ -40,7 +39,6 @@ export class KeyManager {
    * @param payload the `JWS` payload
    * @returns the generated `JWS` signature as a string
    */
-  @fraudTracer.captureMethod()
   public static async generateSignatureFromKMS(
     header: string,
     payload: string,

@@ -1,9 +1,8 @@
 import { ErrorMessages } from "../../enums/ErrorMessages";
 import { ActivationApiConfigParams } from "../../interfaces/interfaces";
-import { MockRP } from "../MockSET/MockRP";
+import { MockRPs } from "../MockSET/MockRPs";
 import { validEventKeys } from "../../enums/eventsEnums";
 import { InboundPipelineURLs } from "../../enums/InboundPipelineURLs";
-import { fraudTracer } from "../../logging/logging";
 
 export class ConfigParams {
   configParams: ActivationApiConfigParams;
@@ -86,7 +85,7 @@ export class ConfigParams {
       eventJson?.rpSplit.every(
         (arrayValue: number) => typeof arrayValue !== "number",
       ) ||
-      eventJson.rpSplit.length !== Object.keys(MockRP).length
+      eventJson.rpSplit.length !== Object.keys(MockRPs).length
     ) {
       throw new ReferenceError(ErrorMessages.ConfigParams.RpSplitInvalid);
     }
