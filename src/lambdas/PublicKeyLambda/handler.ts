@@ -9,7 +9,6 @@ import { Metrics } from "@aws-lambda-powertools/metrics";
 import { LambdaInterface } from "@aws-lambda-powertools/commons/lib/utils/lambda";
 import { LogEvents } from "../../common/enums/Log-events";
 import { KeyManager } from "../../common/classes/keys/keys";
-import { SSMClient } from "@aws-sdk/client-ssm";
 import { KeyObject } from "crypto";
 import { PublicKeyLambdaResponse } from "../../common/interfaces/interfaces";
 import { ParameterNames, ssmParams } from "../../common/classes/SSM/SSMParams";
@@ -41,7 +40,6 @@ class PublicKeyLambda implements LambdaInterface {
         type: "spki",
         format: "pem",
       });
-
       const publicKeyString: string = publicKeyData.toString("base64");
       const response: PublicKeyLambdaResponse = {
         statusCode: 200,
@@ -70,7 +68,6 @@ export const publicKeyLambda: PublicKeyLambda = new PublicKeyLambda(
     }),
     process.env.ENVIRONMENT,
   ),
-  new SSMClient(),
 );
 
 export const handler = middy(publicKeyLambda.handler.bind(publicKeyLambda)).use(
