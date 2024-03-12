@@ -9,7 +9,6 @@ import { Metrics } from "@aws-lambda-powertools/metrics";
 import { LambdaInterface } from "@aws-lambda-powertools/commons/lib/utils/lambda";
 import { LogEvents } from "../../common/enums/Log-events";
 import { KeyManager } from "../../common/classes/keys/keys";
-import { SSMClient } from "@aws-sdk/client-ssm";
 import { KeyObject } from "crypto";
 import { PublicKeyLambdaResponse } from "../../common/interfaces/interfaces";
 import { ParameterNames, ssmParams } from "../../common/classes/SSM/SSMParams";
