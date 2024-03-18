@@ -187,6 +187,8 @@ Resources:
         Variables:
           LAMBDA_NAME: TransmitterLambda
           ENVIRONMENT: !Sub ${Environment}
+          JWS_SIGN_ARN:
+            !FindInMap [JWSSignKMSARNs, Environment, !Ref Environment]
       Architectures:
         - arm64
       FunctionName: !Sub ${Environment}-${AWS::StackName}-set-transmitter
