@@ -19,10 +19,12 @@ class PublicKeyLambda implements LambdaInterface {
   constructor(public fraudLogger: FraudLogger) {}
 
   /**
-   *  Triggered from APIGateway request. Retrieves public key from KMS and returns to calling client
+   *  Triggered from APIGateway request. Retrieves public key from AWS Key Management Service and returns to calling client
    *
    * @param event
    * @param context
+   *
+   * @returns public key
    */
   public async handler(
     event: APIGatewayProxyEvent,
