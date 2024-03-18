@@ -306,6 +306,8 @@ Resources:
         Variables:
           LAMBDA_NAME: PublicKeyLambda
           ENVIRONMENT: !Ref Environment
+          JWS_SIGN_ARN:
+            !FindInMap [JWSSignKMSARNs, Environment, !Ref Environment]
       Architectures:
         - arm64
       FunctionName: !Sub ${Environment}-${AWS::StackName}-public-key
@@ -362,18 +364,6 @@ Resources:
   ##############################################################
   # IAM Policy for PublicKeyLambda to access SSM Parameter
   ##############################################################
-  GetPublicKeyParameterPolicy:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyName: GetPublicKeyParameterPolicy
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Action: "ssm:GetParameter"
-            Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Environment}/PublicKeyArn"
-      Roles:
-        - !Ref PublicKeyLambdaExecutionRole
 
   GetPublicKMSKeyPolicy:
     Type: AWS::IAM::Policy

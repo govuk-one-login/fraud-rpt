@@ -32,11 +32,9 @@ class PublicKeyLambda implements LambdaInterface {
   ): Promise<APIGatewayProxyResult> {
     try {
       this.fraudLogger.logMessage(LogEvents.PublicKeyRequested);
-      const [publicKeyArn]: string[] = await ssmParams.getParams([
-        ParameterNames.PublicKeyArn,
-      ]);
+
       const publicKey: KeyObject = await KeyManager.getPublicKeyFromKMS(
-        publicKeyArn,
+        process.env.JWS_SIGN_ARN as string,
       );
       const publicKeyData: string | Buffer = publicKey.export({
         type: "spki",
