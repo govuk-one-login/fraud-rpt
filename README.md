@@ -47,20 +47,13 @@ A JWT can be represented as:
 
 ## Transmitter function
 
-The Transmitter function signs and encrypts a SET and forwards it to the SSF Transmitter endpoint. It is triggered when a SET is received.
+The Transmitter function signs a SET and forwards it to the SSF Reciever endpoint, as a POST request. It is triggered when a SET is received.
 
 This function:
 
-1. Signs the SET, using a private key as the signature. The signed SET and signature are used to generate a JWS object. The SSF endpoint will use the corresponding public key to verify the signature.
-2. Encrypts the JWS, using the full JWS object as the message:
-   1. Generates a random Content Encryption Key (CEK).
-   2. Encrypt the CEK with the RP's public key to form the JWE encrypted key.
-   3. Generates a random JWE initilization vector.
-   4. Generates a header based on the algorithms chosen for encrypting for the CEK and the message.
-   5. Generates the Additional Authenticated Data (AAD) encryption value based on the header.
-   6. Encrypts the message using the CEK, JWE Initialization Vector and the AAD value. An authentication tag is producted as an artifact of this process.
-   7. Based64url-encodes each component to form a JWE formatted object.
-3. Sends the JWE to the SSF endpoint.
+1. Signs the SET, using a private key to generate the signature. The signed SET and signature are used to create a JWS object. This will be the payload of the request. The SSF endpoint will use the corresponding public key to verify the signature.
+2. Generates the request header with an authorization token. You can obtained this by contacting the AWS Cognito instance associated with the SSF-owned user pool to request an authorization token.
+3. Sends the request to the SSF Reciever endpoint.
 
 ## Helper functions
 
