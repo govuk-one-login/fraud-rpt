@@ -1,14 +1,14 @@
 # The Relying Party Transmitter
 
-The Relying Party Transmitter (RPT) application demonstrates how a [Security Event Token](https://datatracker.ietf.org/doc/html/rfc8417) (SET) can be sent from Relying Parties (RPs) to the Transmitter in the Shared Signals Framework (SSF) using a severless function, known as the Transmitter function. This function signs and encrypts a SET and forwards it to the SSF Transmitter endpoint.
+The Relying Party Transmitter (RPT) application demonstrates how a [Security Event Token](https://datatracker.ietf.org/doc/html/rfc8417) (SET) can be sent from a Relying Party (RP) to the Shared Signals Framework (SSF) receiver using a severless function, known as the transmitter function. As defined by the framework, an RP can also be referred to as the transmitter responsible for broadcasting security events. The reciever is responsible for recieving events and can act on them.
 
-Helper functions have been added for the purpose of testing the Transmitter function. The Generator function generates test cases of messages to pass on and the public key function simulates an RP's endpoint for serving their public key.
+Helper functions have been added for the purpose of testing the transmitter function. The generator function generates test cases of messages to pass on and the public key function simulates an RP's endpoint for serving their public key.
 
 Though this implementation uses serverless functions in AWS (AWS Lambda), the approach described is platform-independent.
 
 ## Background
 
-A SET is issued on a state change of a security subject, for example a user account or an HTTP session. When the Shared Signals Transmitter endpoint receives a SET, it will validate and interpret the received SET. A Transmitter and Receiver can, together, agree an action on receipt of a particular message.
+A SET is issued on a state change of a security subject, for example a user account or an HTTP session. When the SSF receiver endpoint receives a SET, it will validate and interpret the received SET. A transmitter and receiver can together agree on an action on receipt of a particular message.
 
 The SET format extends the JSON Web Token (JWT) format which describes claims. The claims in a SET are described in [RFC8417](https://datatracker.ietf.org/doc/html/rfc8417) and describe the security event that has taken place, the issuer, the subject and the intended audience of the event.
 
@@ -34,12 +34,7 @@ An example SET used when an account has been disabled:
   }
 ```
 
-A JWT can be represented as:
-
-- a JSON Web Signature (JWS) where the claims are provided in the payload to be signed (the most common format).
-  - This has the format: `[header].[payload].[signature]`
-- a JSON Web Encryption (JWE) where the claims are provided in the plaintext to be signed and/or encrypted.
-  - This has the format: `[header].[encrypted key].[encrypted payload].[random number].[authentication tag]`
+A JWT is typically represented as a JSON Web Signature (JWS) where the claims are provided in the payload to be signed (the most common format). This has the format: `[header].[payload].[signature]`
 
 ## Architecture
 
@@ -47,32 +42,32 @@ A JWT can be represented as:
 
 ## Transmitter function
 
-The Transmitter function signs a SET and forwards it to the SSF Reciever endpoint, as a POST request. It is triggered when a SET is received.
+The transmitter function signs a SET and forwards it to the SSF receiver endpoint, as a POST request. It is triggered when a SET is received.
 
 This function:
 
-1. Signs the SET, using a private key to generate the signature. The signed SET and signature are used to create a JWS object. This will be the payload of the request. The SSF endpoint will use the corresponding public key to verify the signature.
-2. Generates the request header with an authorization token. You can obtained this by contacting the AWS Cognito instance associated with the SSF-owned user pool to request an authorization token.
-3. Sends the request to the SSF Reciever endpoint.
+1. Signs the SET, using a private key to generate the signature. The signed SET and signature are used to create a JWS object. This will be the payload of the request. The SSF receiver endpoint will use the corresponding public key to verify the signature.
+2. Generates the request header with an authorization token. You can obtain an authorization token by contacting the AWS Cognito instance associated with the SSF-owned user pool to request an authorization token.
+3. Sends the request to the SSF receiver endpoint.
 
 ## Helper functions
 
 ### Generator function
 
-The Generator function generates a series of messages to sent to the Transmitter function. It is triggered by an API call.
+The generator function generates a series of messages to sent to the transmitter function. It is triggered by an API call.
 
 This function:
 
-- tests that the SSF endpoint is available
-- sends batches of messages to the Transmitter function
+- tests that the SSF receiver endpoint is available
+- sends batches of messages to the transmitter function
 - regenerates and resends failed messages
 - logs the number of successful and failed messages, with the parameters
 
 Settings provided to the API determines the number of messages to send, the ratio of each event type, the error rate for generating a valid SET and the endpoint of the SSF pipeline to use.
 
-For this application, AWS Simple Queue Servce (SQS) queues are used between the Generator and Transmitter functions. The Generator Lambda outputs events into the SETTransmitterQueue, which is used as an event source for the Transmitter Lambda.
+For this application, AWS Simple Queue Servce (SQS) queues are used between the generator and transmitter functions. The generator function outputs events into the SETTransmitterQueue, which is used as an event source for the transmitter function.
 
-All SQS queues have Dead Letter Queues (DLQ) associated with them. If a message fails to be processed by the Generator Lambda, it will retry for a number of times setout by the queue redrive policy. Once this has been reached, the message will then be transferred to the DLQ associated with the queue.
+All SQS queues have Dead Letter Queues (DLQ) associated with them. If a message fails to be processed by the generator function, it will retry for a number of times setout by the queue redrive policy. Once this has been reached, the message will then be transferred to the DLQ associated with the queue.
 
 ### Public Key function
 
