@@ -1,6 +1,8 @@
 # The Relying Party Transmitter
 
-The Relying Party Transmitter (RPT) application demonstrates how a [Security Event Token](https://datatracker.ietf.org/doc/html/rfc8417) (SET) can be sent from a Relying Party (RP) to the Shared Signals Framework (SSF) receiver using a severless function, known as the transmitter function. As defined by the framework, an RP can also be referred to as the transmitter responsible for broadcasting security events. The reciever is responsible for recieving events and can act on them.
+The Relying Party Transmitter (RPT) application demonstrates how a [Security Event Token](https://datatracker.ietf.org/doc/html/rfc8417) (SET) can be sent from a Relying Party (RP) to the Shared Signals Framework (SSF) receiver using a severless function, known as the transmitter function.
+
+As defined by the framework, the entity responsible for broadcasting events is known as the transmitter and the entity responsible for receiving events is known as the receiver. For the inbound flow, an RP will act as the transmitter.
 
 Helper functions have been added for the purpose of testing the transmitter function. The generator function generates test cases of messages to pass on and the public key function simulates an RP's endpoint for serving their public key.
 
@@ -47,8 +49,10 @@ The transmitter function signs a SET and forwards it to the SSF receiver endpoin
 This function:
 
 1. Signs the SET, using a private key to generate the signature. The signed SET and signature are used to create a JWS object. This will be the payload of the request. The SSF receiver endpoint will use the corresponding public key to verify the signature.
-2. Generates the request header with an authorization token. You can obtain an authorization token by contacting the AWS Cognito instance associated with the SSF-owned user pool to request an authorization token.
-3. Sends the request to the SSF receiver endpoint.
+2. Obtains an authorization token by sending a request to the /authorize endpoint with your client ID and secret.
+   - A client ID and secret will be provided to you by the SSF team.
+3. Generates the request header with an authorization token.
+4. Sends the request to the SSF receiver endpoint.
 
 ## Helper functions
 
@@ -71,7 +75,7 @@ All SQS queues have Dead Letter Queues (DLQ) associated with them. If a message 
 
 ### Public Key function
 
-The Public Key function is triggered by an API call to retrive the public key used by the Inbound-SSF to verify the SET.
+The Public Key function is triggered by an API call to retrive the public key used by the SSF receiver to verify the SET.
 
 This function:
 
@@ -152,7 +156,7 @@ We recommend installing the following tools:
 - [VS Code](https://code.visualstudio.com/download) as a preferred IDE for its extensions with AWS
 - [Serverless Application Mode (SAM) CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) to build and deploy applications in AWS through the CLI rather than the Web UI
 - [Node.js](https://nodejs.org/en/) to build the serverless functions in Typescript
-- [Docker](https://docs.docker.com/desktop/)s
+- [Docker](https://docs.docker.com/desktop/)
 - [pre-commit](https://pre-commit.com) to run the project's recommended pre-commit hooks
 
 ### Configure recommended developer tools
