@@ -1,10 +1,10 @@
 # The Relying Party Transmitter
 
-The Relying Party Transmitter (RPT) application demonstrates how a [Security Event Token](https://datatracker.ietf.org/doc/html/rfc8417) (SET) can be sent from a Relying Party (RP) to the Shared Signals Framework (SSF) receiver using a severless function, known as the transmitter function.
+The Relying Party Transmitter (RPT) application demonstrates how a [Security Event Token](https://datatracker.ietf.org/doc/html/rfc8417) (SET) can be sent from a Relying Party (RP) to the Shared Signals Framework (SSF) receiver.
 
 As defined by the framework, the entity responsible for broadcasting events is known as the transmitter and the entity responsible for receiving events is known as the receiver. For the inbound flow, an RP will act as the transmitter.
 
-Helper functions have been added for the purpose of testing the transmitter function. The generator function generates test cases of messages to pass on and the public key function simulates an RP's endpoint for serving their public key.
+In this application, the SET is sent using a severless function, known as the transmitter function. Helper functions have been added for the purpose of testing the transmitter function. The generator function generates test cases of messages to pass on and the public key function simulates an RP's endpoint for serving their public key.
 
 Though this implementation uses serverless functions in AWS (AWS Lambda), the approach described is platform-independent.
 
@@ -58,20 +58,18 @@ This function:
 
 ### Generator function
 
-The generator function generates a series of messages to sent to the transmitter function. It is triggered by an API call.
+The generator function generates a series of messages to send to the transmitter function. It is triggered by an API call.
 
 This function:
 
 - tests that the SSF receiver endpoint is available
 - sends batches of messages to the transmitter function
-- regenerates and resends failed messages
+- (if needed) regenerates and resends any messages that failed to send
 - logs the number of successful and failed messages, with the parameters
 
 Settings provided to the API determines the number of messages to send, the ratio of each event type, the error rate for generating a valid SET and the endpoint of the SSF pipeline to use.
 
-For this application, AWS Simple Queue Servce (SQS) queues are used between the generator and transmitter functions. The generator function outputs events into the SETTransmitterQueue, which is used as an event source for the transmitter function.
-
-All SQS queues have Dead Letter Queues (DLQ) associated with them. If a message fails to be processed by the generator function, it will retry for a number of times setout by the queue redrive policy. Once this has been reached, the message will then be transferred to the DLQ associated with the queue.
+For this application, AWS Simple Queue Servce (SQS) queues are used between the generator and transmitter functions. If a message fails to be sent in the first attempt, AWS SQS will retry until  a set number of times defined by the queue redrive policy, before transferring the message to the associated AWS Dead Letter Queue (DLQ).
 
 ### Public Key function
 
@@ -82,11 +80,35 @@ This function:
 - returns the public key from a key store
 - logs the request
 
-In our example, the public key is returned as a base64-encoded *.pem file.
+For this application, the public key is returned as a base64-encoded *.pem file.
 
-## Preparing to deploy the application using AWS
+## Preparing to build the application for deployment using AWS
 
-When building the application, the `template-rpt.yaml` is used as the starting point. This config file contains the application infrastructure code, which describes the cloud resources and their configuration. The [logic for the serverless functions](/src/lambdas/) is linked to from this config file.
+You need to build the application before it can be deployed in AWS. To build the application you must install:
+
+- [AWS Serverless Application Mode (SAM) Command Line Interface (CLI)](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) to interact with AWS to build, test and deploy the application
+- [Node.js](https://nodejs.org/en/download/current) to build the Typescript application
+
+To build the application:
+
+1. create a `.npmrc` file at the repository root to store the PAT. This will authenticate you to download the application dependencies from GitHub. 
+
+   ```bash
+   @govuk-one-login:registry=https://npm.pkg.github.com
+   //npm.pkg.github.com/:\_authToken=<token>
+   ```
+
+2. download and install the Typescript application dependencies. From the root of the repository, run:
+
+   ```bash
+   npm-install
+   ```
+
+3. use the AWS CLI build action to build the application locally. The [application infrastructure config file](template-rpt.yaml) describes the cloud resources and their configuration. The [logic for the serverless functions](/src/lambdas/) is linked to from this config file. From the root of the repository, run:
+
+   ```bash
+   sam build --template template-mock-rp.yaml --region eu-west-2
+   ```
 
 To deploy the application in AWS you will need:
 
@@ -94,32 +116,6 @@ To deploy the application in AWS you will need:
 - an AWS Identity and Access Management (IAM) administrator user account
 - an AWS access key pair
 - [a GitHub Classic Personal Access Token (PAT)](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) with at least the read:packages permission so that you can download the application dependencies from GitHub
-
-You will need to install:
-
-- [AWS Serverless Application Mode (SAM) Command Line Interface (CLI)](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) to interact with AWS to build, test and deploy the application 
-- [Node.js](https://nodejs.org/en/download/current) to build the application
-
-To build the application, you should:
-
-1. create a `.npmrc` file at the repository root to store the PAT so that you have permission to download the application dependencies
-
-   ```bash
-   @govuk-one-login:registry=https://npm.pkg.github.com
-   //npm.pkg.github.com/:\_authToken=<token>
-   ```
-
-2. download and install the application dependencies. From the root of the repo, run:
-
-   ```bash
-   npm-install
-   ```
-
-3. build the application locally ready for deployment. From the root of the repo, run:
-
-   ```bash
-   sam build --template template-mock-rp.yaml --region eu-west-2
-   ```
 
 ### Testing the serverless functions on your local machine
 
@@ -131,7 +127,7 @@ sam local invoke TransmitterLambda
 
 #### Testing functions using events
 
-A [mock event file can be generated](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-local-generate-event.html) to test triggering a function using events.
+A [mock event file can be generated](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-local-generate-event.html) to test triggering a function using events if using queues.
 
 To run your function with this event, use the `--event` parameter.
 
