@@ -36,7 +36,7 @@ An example SET used when an account has been disabled:
   }
 ```
 
-A JWT is typically represented as a JSON Web Signature (JWS) where the claims are provided in the payload to be signed (the most common format). This has the format: `[header].[payload].[signature]`
+A JWT is typically represented as a JSON Web Signature (JWS) where the claims are provided in the payload to be signed. This has the format: `[header].[payload].[signature]`
 
 ## Architecture
 
