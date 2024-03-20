@@ -2,7 +2,7 @@
 
 The Relying Party Transmitter (RPT) application demonstrates how a [Security Event Token](https://datatracker.ietf.org/doc/html/rfc8417) (SET) can be sent from a Relying Party (RP) to the Shared Signals Framework (SSF) receiver.
 
-As defined by the framework, the entity responsible for broadcasting events is known as the transmitter and the entity responsible for receiving events is known as the receiver. For the inbound flow, an RP will act as the transmitter.
+As defined by the framework, the entity responsible for broadcasting events is known as the transmitter and the entity responsible for receiving events is known as the receiver. For the inbound flow, an RP (Relying Party) will act as the transmitter of a Security Event Token (SET) where the SSF receiver endpoint will act as the receiver.
 
 In this application, the SET is sent using a severless function, known as the transmitter function. Helper functions have been added for the purpose of testing the transmitter function. The generator function generates test cases of messages to pass on and the public key function simulates an RP's endpoint for serving their public key.
 
@@ -10,7 +10,7 @@ Though this implementation uses serverless functions in AWS (AWS Lambda), the ap
 
 ## Background
 
-A SET is issued on a state change of a security subject, for example a user account or an HTTP session. When the SSF receiver endpoint receives a SET, it will validate and interpret the received SET. A transmitter and receiver can together agree on an action on receipt of a particular message.
+A SET is issued on a state change of a security subject, for example a user account or an HTTP session. When the receiver receives a SET, it will validate and interpret the received SET. A transmitter and receiver can together agree on an action on receipt of a particular message.
 
 The SET format extends the JSON Web Token (JWT) format which describes claims. The claims in a SET are described in [RFC8417](https://datatracker.ietf.org/doc/html/rfc8417) and describe the security event that has taken place, the issuer, the subject and the intended audience of the event.
 
@@ -44,15 +44,15 @@ A JWT is typically represented as a JSON Web Signature (JWS) where the claims ar
 
 ## Transmitter function
 
-The transmitter function signs a SET and forwards it to the SSF receiver endpoint, as a POST request. It is triggered when a SET is received.
+The transmitter function signs a SET and forwards it to the receiver, as a POST request. It is triggered when a SET is received.
 
 This function:
 
-1. Signs the SET, using a private key to generate the signature. The signed SET and signature are used to create a JWS object. This will be the payload of the request. The SSF receiver endpoint will use the corresponding public key to verify the signature.
+1. Signs the SET, using a private key to generate the signature. The signed SET and signature are used to create a JWS object. This will be the payload of the request. The receiver will use the corresponding public key to verify the signature.
 2. Obtains an authorization token by sending a request to the /authorize endpoint with your client ID and secret.
    - A client ID and secret will be provided to you by the SSF team.
 3. Generates the request header with an authorization token.
-4. Sends the request to the SSF receiver endpoint.
+4. Sends the request to the receiver.
 
 ## Helper functions
 
@@ -73,7 +73,7 @@ For this application, AWS Simple Queue Servce (SQS) queues are used between the 
 
 ### Public Key function
 
-The Public Key function is triggered by an API call to retrive the public key used by the SSF receiver to verify the SET.
+The Public Key function is triggered by an API call to retrive the public key used by the receiver to verify the SET.
 
 This function:
 
