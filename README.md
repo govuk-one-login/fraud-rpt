@@ -4,7 +4,7 @@ The Relying Party Transmitter (RPT) application demonstrates how a [Security Eve
 
 As defined by the framework, the entity responsible for broadcasting events is known as the transmitter and the entity responsible for receiving events is known as the receiver. For the inbound flow, an RP (Relying Party) will act as the transmitter of a Security Event Token (SET) where the SSF receiver endpoint will act as the receiver.
 
-In this application, the SET is sent using a severless function, known as the transmitter function. Helper functions have been added for the purpose of testing the transmitter function. The generator function generates test cases of messages to pass on and the public key function simulates an RP's endpoint for serving their public key.
+In this application, the SET is sent using a serverless function, known as the transmitter function. Helper functions have been added for the purpose of testing the transmitter function. The generator function generates test cases of messages to pass on and the public key function simulates an RP's endpoint for serving their public key.
 
 Though this implementation uses serverless functions in AWS (AWS Lambda), the approach described is platform-independent.
 
@@ -18,22 +18,21 @@ An example SET used when an account has been disabled:
 
 ```json
 {
-    "iss": "https://idp.example.com/",
-    "jti": "756E69717565206964656E746966696572",
-    "iat": 1508184845,
-    "aud": "636C69656E745F6964",
-    "events": {
-  "https://schemas.openid.net/secevent/risc/event-type/account-disabled"
-          : {
-        "subject": {
-          "subject_type": "iss-sub",
-          "iss": "https://idp.example.com/",
-          "sub": "7375626A656374"
-        },
-        "reason": "hijacking"
-      }
+  "iss": "https://idp.example.com/",
+  "jti": "756E69717565206964656E746966696572",
+  "iat": 1508184845,
+  "aud": "636C69656E745F6964",
+  "events": {
+    "https://schemas.openid.net/secevent/risc/event-type/account-disabled": {
+      "subject": {
+        "subject_type": "iss-sub",
+        "iss": "https://idp.example.com/",
+        "sub": "7375626A656374"
+      },
+      "reason": "hijacking"
     }
   }
+}
 ```
 
 A JWT is typically represented as a JSON Web Signature (JWS) where the claims are provided in the payload to be signed. This has the format: `[header].[payload].[signature]`
@@ -69,7 +68,7 @@ This function:
 
 Settings provided to the API determines the number of messages to send, the ratio of each event type, the error rate for generating a valid SET and the endpoint of the SSF pipeline to use.
 
-For this application, AWS Simple Queue Servce (SQS) queues are used between the generator and transmitter functions. If a message fails to be sent in the first attempt, AWS SQS will retry until  a set number of times defined by the queue redrive policy, before transferring the message to the associated AWS Dead Letter Queue (DLQ).
+For this application, AWS Simple Queue Servce (SQS) queues are used between the generator and transmitter functions. If a message fails to be sent in the first attempt, AWS SQS will retry until a set number of times defined by the queue redrive policy, before transferring the message to the associated AWS Dead Letter Queue (DLQ).
 
 ### Public Key function
 
@@ -80,7 +79,7 @@ This function:
 - returns the public key from a key store
 - logs the request
 
-For this application, the public key is returned as a base64-encoded *.pem file.
+For this application, the public key is returned as a base64-encoded \*.pem file.
 
 ## Preparing to build the application for deployment using AWS
 
@@ -91,7 +90,7 @@ You need to build the application before it can be deployed in AWS. To build the
 
 To build the application:
 
-1. create a `.npmrc` file at the repository root to store the PAT. This will authenticate you to download the application dependencies from GitHub. 
+1. create a `.npmrc` file at the repository root to store the PAT. This will authenticate you to download the application dependencies from GitHub.
 
    ```bash
    @govuk-one-login:registry=https://npm.pkg.github.com
@@ -131,9 +130,9 @@ A [mock event file can be generated](https://docs.aws.amazon.com/serverless-appl
 
 To run your function with this event, use the `--event` parameter.
 
- ```bash
- sam local invoke TransmitterLambda --event event.json
- ```
+```bash
+sam local invoke TransmitterLambda --event event.json
+```
 
 ## Deploying the application using AWS
 
