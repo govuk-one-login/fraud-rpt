@@ -3,7 +3,6 @@ import { ActivationApiConfigParams } from "../../interfaces/interfaces";
 import { MockRPs } from "../MockSET/MockRPs";
 import { validEventKeys } from "../../enums/eventsEnums";
 import { InboundPipelineURLs } from "../../enums/InboundPipelineURLs";
-import { fraudTracer } from "../../logging/logging";
 
 export class ConfigParams {
   configParams: ActivationApiConfigParams;

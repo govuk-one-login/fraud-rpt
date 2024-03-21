@@ -6,7 +6,7 @@ import {
   SendMessageBatchCommandOutput,
   SendMessageBatchRequestEntry,
 } from "@aws-sdk/client-sqs";
-import { fraudTracer } from "../logging/logging";
+import { fraudTracer } from "@govuk-one-login/logging/logging";
 import { ErrorMessages } from "../enums/ErrorMessages";
 
 const sqsClient: SQSClient = fraudTracer.captureAWSv3Client(
