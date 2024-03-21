@@ -11,7 +11,6 @@ import { LogEvents } from "../../common/enums/Log-events";
 import { KeyManager } from "../../common/classes/keys/keys";
 import { KeyObject } from "crypto";
 import { PublicKeyLambdaResponse } from "../../common/interfaces/interfaces";
-import { ParameterNames, ssmParams } from "../../common/classes/SSM/SSMParams";
 import { captureLambdaHandler } from "@aws-lambda-powertools/tracer";
 import middy from "@middy/core";
 
