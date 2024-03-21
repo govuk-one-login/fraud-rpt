@@ -1,396 +1,163 @@
 # The Relying Party Transmitter
 
-This is the source code for the Relying Party Transmitter (RPT) which is responsible for transmitting messages from Relying parties (RPs) to the Shared Signals Framework (SSF).
+The Relying Party Transmitter (RPT) application demonstrates how a [Security Event Token](https://datatracker.ietf.org/doc/html/rfc8417) (SET) can be sent from a Relying Party (RP) to the Shared Signals Framework (SSF) receiver.
+
+As defined by the framework, the entity responsible for broadcasting events is known as the transmitter and the entity responsible for receiving events is known as the receiver. For the inbound flow, an RP (Relying Party) will act as the transmitter of a Security Event Token (SET) where the SSF receiver endpoint will act as the receiver.
+
+In this application, the SET is sent using a serverless function, known as the transmitter function. Helper functions have been added for the purpose of testing the transmitter function. The generator function generates test cases of messages to pass on and the public key function simulates an RP's endpoint for serving their public key.
+
+Though this implementation uses serverless functions in AWS (AWS Lambda), the approach described is platform-independent.
+
+## Background
+
+A SET is issued on a state change of a security subject, for example a user account or an HTTP session. When the receiver receives a SET, it will validate and interpret the received SET. A transmitter and receiver can together agree on an action on receipt of a particular message.
+
+The SET format extends the JSON Web Token (JWT) format which describes claims. The claims in a SET are described in [RFC8417](https://datatracker.ietf.org/doc/html/rfc8417) and describe the security event that has taken place, the issuer, the subject and the intended audience of the event.
+
+An example SET used when an account has been disabled:
+
+```json
+{
+  "iss": "https://idp.example.com/",
+  "jti": "756E69717565206964656E746966696572",
+  "iat": 1508184845,
+  "aud": "636C69656E745F6964",
+  "events": {
+    "https://schemas.openid.net/secevent/risc/event-type/account-disabled": {
+      "subject": {
+        "subject_type": "iss-sub",
+        "iss": "https://idp.example.com/",
+        "sub": "7375626A656374"
+      },
+      "reason": "hijacking"
+    }
+  }
+}
+```
+
+A JWT is typically represented as a JSON Web Signature (JWS) where the claims are provided in the payload to be signed. This has the format: `[header].[payload].[signature]`
+
+## Architecture
+
 ![Architecture of the RPT](/READMEresources/MainArchitecture.png)
 
----
+## Transmitter function
 
-# 1. Setup
+The transmitter function signs a SET and forwards it to the receiver, as a POST request. It is triggered when a SET is received.
 
----
+This function:
 
-## 1.1. Development Environment Set Up
+1. Signs the SET, using a private key to generate the signature. The signed SET and signature are used to create a JWS object. This will be the payload of the request. The receiver will use the corresponding public key to verify the signature.
+2. Obtains an authorization token by sending a request to the /authorize endpoint with your client ID and secret.
+   - A client ID and secret will be provided to you by the SSF team.
+3. Generates the request header with an authorization token.
+4. Sends the request to the receiver.
 
----
+## Helper functions
 
-Setup your environment using the following tools:
+### Generator function
 
-- VS Code - [Install VS Code](https://code.visualstudio.com/download)
-- SAM CLI - [Install the SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
-- Node.js - [Install Node.js](https://nodejs.org/en/), including `npm`.
-- Docker - [Install Docker community edition](https://docs.docker.com/desktop/)
-- pre-commit - [Install pre-commit](https://pre-commit.com)
-- run `pre-commit install` to ensure the hooks are installed
-  A successful `pre-commit install` will yield the following output:
+The generator function generates a series of messages to send to the transmitter function. It is triggered by an API call.
 
-  ```
-  pre-commit installed at .git/hooks/pre-push
-  pre-commit installed at .git/hooks/pre-commit
-  ```
+This function:
 
-The following extensions should be installed for VSCode:
+- tests that the SSF receiver endpoint is available
+- sends batches of messages to the transmitter function
+- (if needed) regenerates and resends any messages that failed to send
+- logs the number of successful and failed messages, with the parameters
 
-- [AWS Toolkit](https://docs.aws.amazon.com/toolkit-for-vscode/latest/userguide/welcome.html) - The AWS Toolkit can be connected through SSO using `aws configure sso` and then selecting the correct profile at the bottom of VSCode.
+Settings provided to the API determines the number of messages to send, the ratio of each event type, the error rate for generating a valid SET and the endpoint of the SSF pipeline to use.
 
-- [SonarLint](https://marketplace.visualstudio.com/items?itemName=SonarSource.sonarlint-vscode) - SonarLint should be connected through the `Connected Mode` it offers. Once it has been connected, creating the binding of your local repo to the `di-fraud-mock-rp` repo on `SonarCloud`.
-  This should add `problems`, which is accessed by `View` -> `Problems`.
+For this application, AWS Simple Queue Servce (SQS) queues are used between the generator and transmitter functions. If a message fails to be sent in the first attempt, AWS SQS will retry until a set number of times defined by the queue redrive policy, before transferring the message to the associated AWS Dead Letter Queue (DLQ).
 
-## 1.2. Local Build and Invocation
+### Public Key function
 
-### Pre-Commit
+The Public Key function is triggered by an API call to retrive the public key used by the receiver to verify the SET.
 
-Install `pre-commit` to local repo at root directory
+This function:
 
-```bash
-pre-commit install
-```
+- returns the public key from a key store
+- logs the request
 
-### Local Development
+For this application, the public key is returned as a base64-encoded \*.pem file.
 
-Install `npm` dependancies
+## Preparing to build the application for deployment using AWS
 
-In order to install packages from fraud-npm, such as @govuk-one-login/logging, an .npmrc file is required in the root folder. This file must contain a Personal Access Token (PAT) with 'read-packages' permissions in the following format:
+You need to build the application before it can be deployed in AWS. To build the application you must install:
 
-@govuk-one-login:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:\_authToken=<generated-token>
+- [AWS Serverless Application Mode (SAM) Command Line Interface (CLI)](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) to interact with AWS to build, test and deploy the application
+- [Node.js](https://nodejs.org/en/download/current) to build the Typescript application
 
-For guidance on generating a PAT, refer to the documentation: Managing Your Personal Access Tokens.
+To build the application:
 
-https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
+1. create a `.npmrc` file at the repository root to store the PAT. This will authenticate you to download the application dependencies from GitHub.
 
-Once the PAT is generated and the .npmrc file is added use the following command to install npm packages:
+   ```bash
+   @govuk-one-login:registry=https://npm.pkg.github.com
+   //npm.pkg.github.com/:\_authToken=<token>
+   ```
 
-```bash
-npm i
-```
+2. download and install the Typescript application dependencies. From the root of the repository, run:
 
-Build your application with the `sam build` command.
+   ```bash
+   npm-install
+   ```
 
-```bash
-sam build --template template-rpt.yaml --region eu-west-2
-```
+3. use the AWS CLI build action to build the application locally. The [application infrastructure config file](template-rpt.yaml) describes the cloud resources and their configuration. The [logic for the serverless functions](/src/lambdas/) is linked to from this config file. From the root of the repository, run:
 
-To run functions locally you can invoke them with the `sam local invoke` command.
+   ```bash
+   sam build --template template-mock-rp.yaml --region eu-west-2
+   ```
+
+To deploy the application in AWS you will need:
+
+- an AWS Account
+- an AWS Identity and Access Management (IAM) administrator user account
+- an AWS access key pair
+- [a GitHub Classic Personal Access Token (PAT)](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) with at least the read:packages permission so that you can download the application dependencies from GitHub
+
+### Testing the serverless functions on your local machine
+
+You can run the serverless functions on your local machine using the `sam local invoke` command. For example:
 
 ```bash
 sam local invoke TransmitterLambda
 ```
 
-To run your function locally with an event, use the `--event` parameter.
+#### Testing functions using events
+
+A [mock event file can be generated](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-local-generate-event.html) to test triggering a function using events if using queues.
+
+To run your function with this event, use the `--event` parameter.
 
 ```bash
 sam local invoke TransmitterLambda --event event.json
 ```
 
-An example `SQSEvent` stored in `event.json` file for the `TransmitterLambda`:
+## Deploying the application using AWS
 
-```JSON
-{
-  "Records":
-  [
-    {
-      "messageId": "19dd0b57-b21e-4ac1-bd88-01bbb068cb78",
-      "receiptHandle": "MessageReceiptHandle",
-      "body": {
-        "SET": {
-          "iss": "https://issuer.digitalIdentity.gov/",
-          "jti": "756e697175654964656e74696669657230",
-          "iat": 1520364019,
-          "aud": "https://audience.hmrc.gov/",
-          "events": {
-            "https://schemas.digitalIdentity.gov/secevent/risc/event-type/ipv-spot-request-recieved": {
-              "subject": {
-                "format": "iss_sub",
-                "iss": "https://issuer.digitalIdentity.gov/",
-                "sub": "aPairwiseId"
-              }
-            }
-          },
-        "Destination": "inbound-ssf.development.account.gov.uk"
-        }
-      },
-      "attributes": {
-        "ApproximateReceiveCount": "1",
-        "SentTimestamp": "1523232000000",
-        "SenderId": "123456789012",
-        "ApproximateFirstReceiveTimestamp": "1523232000001"
-      },
-      "messageAttributes": {},
-      "md5OfBody": "7b270e59b47ff90a553787216d55d91d",
-      "eventSource": "aws:sqs",
-      "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:MyQueue",
-      "awsRegion": "eu-west-2"
-    }
-  ]
-}
-```
+We recommend the application is automatically deployed using a tool such as AWS CloudFormation or Terraform.
 
-This can be easily generated for any event using the following `sam` command:
+For this project, a [GitHub action](.github/workflows/deploy-branch.yaml) is used to [build the application](.github/workflows/build.yaml) and [deploy it with AWS CloudFormation](.github/workflows/deploy-to-aws.yaml).
 
-```bash
-sam local generate-event <service> <event>
-```
+## Logging using AWS
 
-For example, to generate an `SQS` service `receive-message` event:
+For this project, AWS Powertools has been configured to log events from each serverless function to AWS Cloudwatch.
 
-```bash
-sam local generate-event sqs receive-message
-```
+## Recommended developer tools for AWS
 
-## 1.3 CloudFormation Deployment
+We recommend installing the following tools:
 
----
+- [VS Code](https://code.visualstudio.com/download) as a preferred IDE for its extensions with AWS
+- [Serverless Application Mode (SAM) CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) to build and deploy applications in AWS through the CLI rather than the Web UI
+- [Node.js](https://nodejs.org/en/) to build the serverless functions in Typescript
+- [Docker](https://docs.docker.com/desktop/)
+- [pre-commit](https://pre-commit.com) to run the project's recommended pre-commit hooks
 
-The `deploy-branch.yaml` action should be used to deploy branches of the Mock RP to the AWS development environment.
+### Configure recommended developer tools
 
-[See here](https://govukverify.atlassian.net/wiki/spaces/FPAD/pages/3684270595/Manual+Testing+of+Deployed+Branches) for a guide on branch deployment.
-
----
-
-# 2. Activation Endpoint Use
-
----
-
-The API endpoint can be used to trigger an RPT Service run. The following values can be used to change the configuration of the run:
-
-- **numMessages**: The number of messages to send as a result of said invocation.
-- **eventTypleSplit**: The ratio of messages containing certain events, currently assuming only 2 types of event.
-- **errorRate**: Number between 0-1, which is the probability of the generated SET containing an error in formatting.
-- **inboundEndpointURL**: The endpoint of the SSF pipeline to which the RPT will be sending messages.
-
-No field is specifically required to be configured, if a given field is not provided a value then it will be set to the default. A template body of the POST request using the default values is shown below:
-
-```typescript
-{
-    "numMessages": 1,
-    "eventTypeSplit": {
-        "accountPurged": 1,
-        "accountCredentialChangeRequired": 0,
-        "accountDisabled": 0,
-        "accountEnabled": 0,
-        "credentialCompromise": 0,
-        "optIn": 0,
-        "optOutInitiated": 0,
-        "optOutCancelled": 0,
-        "optOutEffective": 0,
-        "recoveryActivated": 0,
-        "recoveryInformationChanged": 0,
-        "sessionsRevoked":0
-    },
-    "errorRate": 0,
-    "inboundEndpointURL" : "inbound-ssf.development.account.gov.uk"
-}
-
-```
-
----
-
-This JSON must be sent via a POST request to the endpoint of the RPT, the URLs for the main RP Service in each environment are:
-
-development: TBD
-build: TBD
-staging: TBD
-
----
-
-# 3. Implementation
-
----
-
-![Architecture of the RPT](READMEresources/DetailedArchitecture.png)
-
-## 3.1. Generator Lambda
-
-### 3.1.1. Summary
-
-The Generator Lambda generates messsages based on configuration parameters to pass to the [Transmitter Lambda](#Transmitter-Lambda) using SQS.
-
-### 3.1.2. Detailed Description
-
-The Generator Lambda is triggered by an API Gateway event containing configuration parameters which are parsed using the [ConfigParams](#ConfigParams) class.
-
-The Lambda then does a Healthcheck to ensure the SSF Endpoint can be reached before generating any messages.
-
-It then generates messages using the `ConfigParams` values and sends them in batches of 10 messages to the Transmitter Lambda using AWS `Simple Queue Service`. Any messages that fail to send are added to the dead letter queue.
-
-When the Lambda finishes running, the number of failed messages are counted and that amount of messages are regenerated and sent by the Lambda. This will be repeated up to 5 times.
-
-The Lambda will then report the number of successful messages sent, failed messages and the details of the ConfigParams it used.
-
----
-
-## 3.2. Transmitter Lambda
-
-### 3.2.1. Summary
-
-The Transmitter Lambda receives messages from the [Generator Lambda](#Generator-Lambda) via SQS. It then makes POST requests to the `SSF Endpoint`.
-
-### 3.2.2. Detailed Description
-
-The `SQS` messages from the `Generator Lambda` are received as an `SQS` event act as the triggers for the `Transmitter Lambda`.
-
-`JSON Web Tokens (JWT)` are used to ensure the payload can be verified it came from who it says it has, and that it can be transmitted encrypted over the internet.
-
-First, the `SET` from the body of the `SQS` messages is packaged into a `JSON Web Signature (JWS)`. The signature is generated directly from AWS using a `private key`. The Inbound-SSF pipeline can verify it was sent by us when they use the `public key`, from the private key pair used to generate the signature.
-
-Second, the `JWS` is then packed into a `JSON Web Encryption (JWE)`. The JWE generates a random cipher to encrypt the data every time, but that is also encrypted and sent as part of the `JWE`. To encrypt the payload (the `JWS` at this point), the randomly generated cipher is used, and the output is stored in the `JWS` ready to be sent.
-
-The `Content Encryption Key (CEK)`, A.K.A the cipher is then encrypted using a public key from the Inbound-SSF, and then stored in the `JWS` ready to be sent.
-
-The `JWS` is then packaged into a post request and sent to the endpoint of the `Inbound-SSF pipeline`, defined in the destination field of the `SQS` message body.
-
----
-
-## 3.3. Public Key Lambda
-
-### 3.3.1. Summary
-
-This Lambda simulates an RP's endpoint for serving their public key. Triggered by API Gateway requests, it fetches a public key from AWS KMS for SET verification.
-
-Inbound-SSF will then recieve this public key to verify the SETs
-
-### 3.3.2. Detailed Description
-
-The Lambda is triggered by an API Gateway Request and the `PublicKeyARN` is fetched from `SSMParams`.
-
-The public key is retreived from KMS using the `KeyManager` class and exported in `PEM` format.
-
-The public key data is exported and converted to base64 format and a response is created with a 200 status code and the public key in the body.
-
-Successful retrieval of the public key is logged by the `FraudLogger`. Any errors in any step are also logged and a 500 status code and an error message is returned in case of failure.
-
----
-
-# 4. Src/Common
-
----
-
-## 4.1. Classes
-
----
-
-### 4.1.1. ConfigParams
-
-This class handles the parsing and storing of the parameters passed through from the activation endpoint. When instantiated it constructs with the default values, then the `parseAllApiParams()` method checks the API event for any overrides, validates them, and stores them in place of the default values.
-
-### 4.1.2. JWS & JWE
-
-These classes hold the logic for coverting the SET messages received in the `Transmitter Lambda` into a valid JWE to be sent to the `SSF Endpoint`.
-
-### 4.1.3. MockEvents
-
-This class handles the generation of the `events` field of each `SET`, and is called within the `MockSET` class logic. The `EventMapping` handles the mapping of the requested event type to returning teh right class for that event.
-
-The `BaseEvent` object handles the events that follow the standard structure with the event specific values added through the mapping.
-
-For events with atypical structures, each has their own class that extends the `BaseEvent` class which the mapping will point to.
-
-### 4.1.4 MockSET
-
-This class handles the generation of the mock `SETs`. It uses the `configParams` values to generate the data and return a full SET.
-
-It will instantiate with default values which are then overrided by the calling of each of the methods - some of which depend on others.
-
-## 4.2. Other
-
-### 4.2.1. Logging / Tracing
-
-AWS Powertools is used within the Project to log events from inside each Lambda. These logs are sent to Cloudwatch. Different levels of logs can be recorded using the following methods in the PowerTools package;
-
-```TypeScript
-logger.debug()
-logger.info()
-logger.error()
-logger.critical()
-```
-
-##### Example logging method
-
-```TypeScript
- /**
-   * Send Started Processing Event log
-   *
-   * @param messageId
-   */
-  logStartedProcessing = (messageId?: string): void => {
-    this.logger.info(LogEvents.StartedProcessing, { messageId });
-    this.metrics.addMetric(LogEvents.StartedProcessing, MetricUnits.Count, 1);
-  };
-```
-
-##### Example output in Cloudwatch
-
-```JSON
-{
-    "level": "INFO",
-    "message": "Started Processing",
-    "service": "inboundSSF",
-    "timestamp": "2023-05-25T09:20:32.132Z",
-    "xray_trace_id": "1-646f285f-4d67c24bfe2a7a5e227973e0",
-    "messageId": "d001fb5c-03c7-4519-bf31-c22aededc339"
-}
-
-```
-
-Powertools tracing can be used to track a single event / message throughout the entire inbound pipeline, showing the time taken to process by each Lambda, with the ability to break each lambda’s code down into segments for monitoring.
-
-**NOTE: Decorators can only be used on Class methods, and are not supported on individual functions.**
-
-Capturing Lambda handlers can be done by adding the captureLambdaHandler middleware to the Handler method
-
-```TypeScript
-export const handler = middy(
-  transmitterLambda.handler.bind(transmitterLambda)
-).use(captureLambdaHandler(fraudTracer));
-```
-
-AWS SDK clients can be wrapped with the captureAWSv3Client method to trace all method calls using that package
-
-```TypeScript
-const sqsClient = fraudTracer.captureAWSv3Client(
-  new SQSClient({
-    region: process.env.AWS_REGION,
-  })
-);
-```
-
-### 4.2.2. Queues
-
-SQS queues are used between the Lambdas. The `Generator Lambda` outputs events into the `SETTransmitterQueue`, which is used as an event source for the `Transmitter Lambda`.
-
-All SQS queues have Dead Letter Queues associated with them. If a message fails to be processed by the `Generator Lambda`, it will retry for a number of times setout by the queue redrive policy. Once this has been reached, the message will then be transferred to the DLQ associated with the queue.
-
-The JWS is then packaged into a post request and sent to the endpoint of the Inbound-SSF pipeline.
-
-# Troubleshooting
-
-## AWS Type Error
-
-If you ever encounter type errors _only_ after deployment, try these fixes:
-
-### Ensure uses of `async` are `await`-ed using `Promise.resolve`
-
-> ❌ `let a = await func()`
-> ✅ `let a = await Promise.resolve(func())`
-
-### Use `console.log` to ensure `type` is correct.
-
-> **NOTE:** For some reason these can change when deploying 🤷
-
-#### AWS:
-
-```typescript
-func a(data: Buffer) {
-  console.log(data) // Promise<Buffer>
-  data = await Promise.resolve(data)
-  console.log(data) // Buffer
-}
-```
-
-#### Local:
-
-```typescript
-func a(data: Buffer) {
-  console.log(data) // Buffer
-}
-```
+- Run `pre-commit install` to install project's pre-commit hooks to improve security and write cleaner code
+- Install the [AWS Toolkit extension for VS Code](https://docs.aws.amazon.com/toolkit-for-vscode/latest/userguide/welcome.html) for a more integrated experience with AWS
+  - To connect the toolkit to your AWS account, run `aws configure sso`
+- Install the [SonarLint extension for VS Code](https://marketplace.visualstudio.com/items?itemName=SonarSource.sonarlint-vscode) as a Typescript linter
+  - Use Connected Mode to bind your local repository to the remote repository on SonarCloud
