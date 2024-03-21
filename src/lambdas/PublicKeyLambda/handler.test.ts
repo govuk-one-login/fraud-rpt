@@ -37,7 +37,7 @@ describe("PublicKeyLambda", () => {
   beforeEach(() => {
     jest.resetAllMocks();
     jest.spyOn(KeyManager, "getPublicKeyFromKMS").mockImplementation();
-    jest.spyOn(ssmParams, "getParams").mockResolvedValue(["mockPublicKeyArn"]);
+    process.env.JWS_SIGN_ARN = "mockPublicKeyArn";
   });
 
   it("should have the lambda defined", () => {

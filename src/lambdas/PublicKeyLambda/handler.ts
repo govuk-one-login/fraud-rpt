@@ -11,7 +11,6 @@ import { LogEvents } from "../../common/enums/Log-events";
 import { KeyManager } from "../../common/classes/keys/keys";
 import { KeyObject } from "crypto";
 import { PublicKeyLambdaResponse } from "../../common/interfaces/interfaces";
-import { ParameterNames, ssmParams } from "../../common/classes/SSM/SSMParams";
 import { captureLambdaHandler } from "@aws-lambda-powertools/tracer";
 import middy from "@middy/core";
 
@@ -32,11 +31,9 @@ class PublicKeyLambda implements LambdaInterface {
   ): Promise<APIGatewayProxyResult> {
     try {
       this.fraudLogger.logMessage(LogEvents.PublicKeyRequested);
-      const [publicKeyArn]: string[] = await ssmParams.getParams([
-        ParameterNames.PublicKeyArn,
-      ]);
+
       const publicKey: KeyObject = await KeyManager.getPublicKeyFromKMS(
-        publicKeyArn,
+        process.env.JWS_SIGN_ARN as string,
       );
       const publicKeyData: string | Buffer = publicKey.export({
         type: "spki",
