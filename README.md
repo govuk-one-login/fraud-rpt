@@ -19,19 +19,20 @@ The RPT uses:
 ### Transmitter function
 
 The transmitter function is triggered when it receives a SET. The transmitter function signs the SET and forwards it to the SSF receiver as an HTTP `POST`.
-The SSF team will provide you with:
+
+The SSF team will send you:
 
 - a client ID/secret pair , to request an authentication token
 - the full URL of the /authorize endpoint, to request an authentication token
 
-You must provide the SSF team with:
+You must send the SSF team:
 
-- the public key that corresponds with the private key used to sign the SET, so the SET can be decoded
+- the public key that corresponds with the private key used to sign the SET, so the SSF team can read the SET
 - the IP address that sends the request, so it can be added to their allowlist
 
 This is an overview of the process:
 
-1. Signs the SET, using a private key to generate the signature. The payload of the 'POST' request is a JSON Web Signature (JWS) object using the signature and signed SET. The receiver verifies the signature using the corresponding public key.
+1. Signs the SET, using a private key to generate the signature. The payload of the `POST` request is a JSON Web Signature (JWS) object using the signature and signed SET. The receiver verifies the signature using the corresponding public key.
 1. Gets an authorization token by sending a request to the /authorize endpoint with the RP’s client ID and secret.
 1. Generates the request header with an authorisation token.
 1. Sends the request to the receiver.
@@ -140,7 +141,7 @@ The RPT uses [AWS Powertools](https://github.com/aws-powertools/powertools-lambd
 
 We recommend these tools if you intend to update the RPT or if you’re writing your own AWS lambda function:
 
-- [VS Code](https://code.visualstudio.com/download) as a preferred IDE for its extensions with AWS
+- [VS Code](https://code.visualstudio.com/download) as a preferred code editor for its extensions with AWS
 - [AWS Serverless Application Mode (SAM) CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) to build and deploy applications in AWS through the CLI rather than the Web UI
 - [Node.js](https://nodejs.org/en/) to build the serverless functions in TypeScript
 - [Docker](https://docs.docker.com/desktop/) to test the build action locally with AWS SAM
