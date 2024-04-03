@@ -18,7 +18,7 @@ The RPT uses:
 
 ### Transmitter function
 
-The transmitter function is triggered when it receives a SET. The transmitter function signs the SET and forwards it to the SSF receiver as an HTTP `POST`.
+The transmitter function is triggered when it receives a a defined number of SET messages. The transmitter function signs each SET and forwards each SET message to the SSF receiver as an HTTP `POST`.
 
 The SSF team will send you:
 
