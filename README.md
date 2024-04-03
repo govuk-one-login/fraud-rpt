@@ -116,7 +116,7 @@ npm-install
 1. Use the AWS CLI build action to build the application locally. The [application infrastructure config file](template-rpt.yaml) describes the cloud resources and their configuration. The [logic for the serverless functions](/src/lambdas/) is linked to from this config file. From the root of the repository, run:
 
 ```bash
-sam build --template template-mock-rp.yaml --region eu-west-2
+sam build --template template-rpt.yaml --region eu-west-2
 ```
 
 ### Testing the functions locally
