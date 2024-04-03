@@ -43,19 +43,19 @@ Helper functions test the behaviour of the transmitter function in the applicati
 
 There are 2 helper functions:
 
-- [the generator function](#generator-function) generates test cases of messages
+- [the generator function](#generator-function) generates test cases of SET messages
 - [the public key function](#public-key-function) simulates an RP's endpoint for serving their public key
 
 #### Generator function
 
-The generator function generates a series of messages to send to the transmitter function. It is triggered by an API call.
+The generator function generates a series of SET messages to send to the transmitter function. It is triggered by an API call.
 
 This function:
 
 - tests that the SSF receiver endpoint is available
-- sends batches of messages to the transmitter function
-- regenerates and resends any messages that failed to send, if required
-- logs the number of successful and failed messages along with their parameters
+- sends batches of SET messages to the transmitter function
+- regenerates and resends any SET messages that failed to send, if required
+- logs the number of successful and failed SET messages along with their parameters
 
 The parameters you send to the API set:
 
@@ -64,7 +64,7 @@ The parameters you send to the API set:
 - the error rate for generating a valid SET
 - which SSF pipeline endpoint to use
 
-AWS Simple Queue Service (SQS) queues are used between the generator and transmitter functions. If a message fails to send on the first attempt, AWS SQS reattempts to send the message until it reaches the limit, before transferring the message to the associated AWS Dead Letter Queue (DLQ). The reattempt limit is set in the queue redrive policy.
+AWS Simple Queue Service (SQS) queues are used between the generator and transmitter functions. If a SET message fails to send on the first attempt, AWS SQS reattempts to send the SET message until it reaches the limit, before transferring the SET message to the associated AWS Dead Letter Queue (DLQ). The reattempt limit is set in the queue redrive policy.
 
 #### Public key function
 
