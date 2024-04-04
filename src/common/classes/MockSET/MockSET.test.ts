@@ -1,4 +1,4 @@
-import { expect, describe, it } from "@jest/globals";
+import { describe, expect, it } from "@jest/globals";
 import { MockSET } from "./MockSET";
 import { issSubEventURIs } from "../../enums/eventsEnums";
 
@@ -22,9 +22,6 @@ describe("mockSET", () => {
       iat: expect.any(Number),
       jti: expect.any(String),
       aud: expect.any(String),
-      sub: expect.any(String),
-      txn: expect.any(String),
-      toe: expect.any(Number),
       events: expect.any(String),
     };
     expect(mockSET.mockSET).toMatchObject(schema);
@@ -60,25 +57,6 @@ describe("generateUniqueID", () => {
   });
 });
 
-describe("generateTimeOfEvent", () => {
-  it("should be defined", async () => {
-    const mockSET: MockSET = new MockSET();
-    expect(mockSET.generateTimeOfEvent).toBeDefined();
-  });
-
-  it("should return a random string for the jti field", async () => {
-    jest.spyOn(global.Math, "random").mockReturnValue(0);
-
-    const mockDate = new Date(70, 0, 1, 1, 0, 0, 0);
-    jest.useFakeTimers();
-    jest.setSystemTime(mockDate); // 1st, Jan, 1970 00:00:00.00, This should return a time of 0,
-    const mockSET: MockSET = new MockSET();
-    await mockSET.fillStaticFields();
-
-    expect(mockSET.mockSET.toe).toBe(mockDate.getTime());
-  });
-});
-
 describe("adjustRpOfOrigin", () => {
   it("should be defined", async () => {
     const mockSET: MockSET = new MockSET();
@@ -86,35 +64,39 @@ describe("adjustRpOfOrigin", () => {
   });
 
   it.each([
-    [[1, 0, 0], "https://MockRP1.account.gov.uk/publicKey/", "RP1USER1"],
-    [[0, 1, 0], "https://MockRP2.account.gov.uk/publicKey/", "RP2USER1"],
-    [[0, 0, 1], "https://MockRP3.account.gov.uk/publicKey/", "RP3USER1"],
+    [[1, 0, 0], "https://MockRP1.account.gov.uk/"],
+    [[0, 1, 0], "https://MockRP2.account.gov.uk/"],
+    [[0, 0, 1], "https://MockRP3.account.gov.uk/"],
   ])(
-    "should change the iss and sub values according according to the rpSplit",
-    async (rpSplit, issExpected, subExpected) => {
+    "should change the iss value according according to the rpSplit",
+    async (rpSplit, issExpected) => {
       jest.spyOn(global.Math, "random").mockReturnValue(0); //Ensure it picks user 1
 
       const mockSET: MockSET = new MockSET();
       await mockSET.adjustRpOfOrigin(rpSplit);
 
       expect(mockSET.mockSET.iss).toBe(issExpected);
-      expect(mockSET.mockSET.sub).toBe(subExpected);
     },
   );
 
   it.each([
-    [0.33, "RP1USER1"],
-    [0.66, "RP1USER2"],
-    [0.99, "RP1USER3"],
+    [0.33, "uri:fdc:gov.uk:2022:RP1_User1_02YOlWpd8PAOI-2sVlB2nsNU7mcLZYhYw="],
+    [0.66, "uri:fdc:gov.uk:2022:RP1_User2_02YOlWpd8PAOI-2sVlB2nsNU7mcLZYhYw="],
+    [0.99, "uri:fdc:gov.uk:2022:RP1_User3_02YOlWpd8PAOI-2sVlB2nsNU7mcLZYhYw="],
   ])(
     "should return each of the three users for RP1",
     async (neededRandomValue, subExpected) => {
       jest.spyOn(global.Math, "random").mockReturnValue(neededRandomValue); //Ensure it picks user 1
 
       const mockSET: MockSET = new MockSET();
-      await mockSET.adjustRpOfOrigin([1, 0, 0]);
+      // set RP of origin, always choose first user at RP
+      const pairwiseId = await mockSET.adjustRpOfOrigin([1, 0, 0]);
+      // set event type to the first element of the events enum, also set the pairwise ID
+      await mockSET.adjustEvent([1, 0], pairwiseId);
 
-      expect(mockSET.mockSET.sub).toBe(subExpected);
+      expect(
+        mockSET.mockSET.events[Object.values(issSubEventURIs)[0]].subject.uri,
+      ).toBe(subExpected);
     },
   );
 });
@@ -126,32 +108,68 @@ describe("adjustEvent", () => {
   });
 
   it.each([
-    [[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], issSubEventURIs.accountPurged],
     [
-      [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      issSubEventURIs.accountBlock,
+    ],
+    [
+      [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      issSubEventURIs.accountConcern,
+    ],
+    [
+      [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      issSubEventURIs.accountPurged,
+    ],
+    [
+      [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       issSubEventURIs.accountCredentialChangeRequired,
     ],
-    [[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0], issSubEventURIs.accountDisabled],
-    [[0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0], issSubEventURIs.accountEnabled],
     [
-      [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      issSubEventURIs.accountDisabled,
+    ],
+    [
+      [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      issSubEventURIs.accountEnabled,
+    ],
+    [
+      [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
       issSubEventURIs.credentialCompromise,
     ],
-    [[0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0], issSubEventURIs.optIn],
-    [[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0], issSubEventURIs.optOutInitiated],
-    [[0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0], issSubEventURIs.optOutCancelled],
-    [[0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0], issSubEventURIs.optOutEffective],
-    [[0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0], issSubEventURIs.recoveryActivated],
     [
-      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+      [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+      issSubEventURIs.deviceConcern,
+    ],
+    [[0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0], issSubEventURIs.optIn],
+    [
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+      issSubEventURIs.optOutInitiated,
+    ],
+    [
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+      issSubEventURIs.optOutCancelled,
+    ],
+    [
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+      issSubEventURIs.optOutEffective,
+    ],
+    [
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+      issSubEventURIs.recoveryActivated,
+    ],
+    [
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
       issSubEventURIs.recoveryInformationChanged,
     ],
-    [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], issSubEventURIs.sessionsRevoked],
+    [
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      issSubEventURIs.sessionsRevoked,
+    ],
   ])(
     "should change the events according according to the eventSplit to get each event",
     async (eventSplit, expectedURI) => {
       const mockSET: MockSET = new MockSET();
-      await mockSET.adjustEvent(eventSplit);
+      await mockSET.adjustEvent(eventSplit, "some-uri");
 
       expect(JSON.stringify(mockSET.mockSET.events)).toContain(expectedURI);
     },
@@ -163,6 +181,7 @@ describe("addError", () => {
 
   it("should be defined", async () => {
     const mockSET: MockSET = new MockSET();
+    expect(mockSET.addError).toBeDefined();
   });
 
   it("should error a random field", async () => {
@@ -174,13 +193,10 @@ describe("addError", () => {
   });
 
   it.each([
-    ["iss", 0 / 7],
-    ["iat", 1 / 7],
-    ["jti", 2 / 7],
-    ["aud", 3 / 7],
-    ["sub", 4 / 7],
-    ["txn", 5 / 7],
-    ["toe", 6 / 7],
+    ["iss", 0 / 5],
+    ["iat", 1 / 5],
+    ["jti", 2 / 5],
+    ["aud", 3 / 5],
     ["events", 0.99],
   ])(
     "should error only the chosen field",
@@ -200,7 +216,7 @@ describe("addError", () => {
           definedFieldsCounter++;
         }
       }
-      expect(definedFieldsCounter).toBe(7);
+      expect(definedFieldsCounter).toBe(4);
     },
   );
 });

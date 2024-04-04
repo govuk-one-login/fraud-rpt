@@ -1,9 +1,12 @@
 export enum EventTypes {
+  AccountBlock = "accountBlock",
+  AccountConcern = "accountConcern",
   AccountPurged = "accountPurged",
   AccountCredentialChangeRequired = "accountCredentialChangeRequired",
   AccountDisabled = "accountDisabled",
   AccountEnabled = "accountEnabled",
   CredentialCompromise = "credentialCompromise",
+  DeviceConcern = "deviceConcern",
   OptIn = "optIn",
   OptOutInitiated = "optOutInitiated",
   OptOutCancelled = "optOutCancelled",
@@ -14,11 +17,14 @@ export enum EventTypes {
 }
 
 export const validEventKeys: Array<EventTypes> = [
+  EventTypes.AccountBlock,
+  EventTypes.AccountConcern,
   EventTypes.AccountPurged,
   EventTypes.AccountCredentialChangeRequired,
   EventTypes.AccountDisabled,
   EventTypes.AccountEnabled,
   EventTypes.CredentialCompromise,
+  EventTypes.DeviceConcern,
   EventTypes.OptIn,
   EventTypes.OptOutInitiated,
   EventTypes.OptOutCancelled,
@@ -28,52 +34,16 @@ export const validEventKeys: Array<EventTypes> = [
   EventTypes.SessionsRevoked,
 ];
 
-export enum EventFieldNames {
-  Subject = "subject",
-  CredentialType = "credential_type",
-  Claim = "claim",
-  ChangeType = "change_type",
-  CurrentLevel = "current_level",
-  Previouslevel = "previous_level",
-  ChangeDirection = "change_direction",
-  PreviousStatus = "previous_status",
-  CurrentStatus = "current_status",
-  Reason = "reason",
-  NewValue = "new-value",
-  EventTimestamp = "event_timestamp",
-  ReasonAdmin = "reason-admin",
-  ReasonUser = "reason-user",
-  InitiatingEntity = "initiating_entity",
-  FriendlyName = "friendly_name",
-  X509Issuer = "x509_issuer",
-  X509Serial = "z509_serial",
-  Fido2Aaguid = "fido2_aaguid",
-}
-
-export const EventRequiredFields = {
-  AccountPurged: [EventFieldNames.Subject],
-  AccountDisabled: [EventFieldNames.Subject],
-  AccountEnabled: [EventFieldNames.Subject],
-  CredentialCompromise: [
-    EventFieldNames.Subject,
-    EventFieldNames.CredentialType,
-  ],
-  OptIn: [EventFieldNames.Subject],
-  OptOutInitiated: [EventFieldNames.Subject],
-  OptOutCancelled: [EventFieldNames.Subject],
-  OptOutEffective: [EventFieldNames.Subject],
-  RecoveryActivated: [EventFieldNames.Subject],
-  RecoveryInformationChanged: [EventFieldNames.Subject],
-  SessionsRevoked: [EventFieldNames.Subject],
-};
-
 export enum issSubEventURIs {
+  accountBlock = "https://vocab.account.gov.uk/secevent/v1/notification/accountBlock",
+  accountConcern = "https://vocab.account.gov.uk/secevent/v1/notification/accountConcern",
   accountPurged = "https://schemas.openid.net/secevent/risc/event-type/account-purged",
   accountCredentialChangeRequired = "https://schemas.openid.net/secevent/risc/event-type/account-credential-change-required",
   accountDisabled = "https://schemas.openid.net/secevent/risc/event-type/account-disabled",
   accountEnabled = "https://schemas.openid.net/secevent/risc/event-type/account-enabled",
   credentialCompromise = "https://schemas.openid.net/secevent/risc/event-type/credential-compromise",
-  optIn = "https://schemas.openid.net/secevent/risc/event-type/identifier-changed",
+  deviceConcern = "https://vocab.account.gov.uk/secevent/v1/notification/deviceConcern",
+  optIn = "https://schemas.openid.net/secevent/risc/event-type/opt-in",
   optOutInitiated = "https://schemas.openid.net/secevent/risc/event-type/opt-out-initiated",
   optOutCancelled = "https://schemas.openid.net/secevent/risc/event-type/opt-out-cancelled",
   optOutEffective = "https://schemas.openid.net/secevent/risc/event-type/opt-out-effective",

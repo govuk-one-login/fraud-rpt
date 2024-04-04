@@ -157,11 +157,14 @@ class GeneratorLambda implements LambdaInterface {
         // new instance of MockSET created
         let mockSET: MockSET = new MockSET();
         //Using parsed configParams to set RPofOrigin, adjustEvent & addError
-        await Promise.allSettled([
-          mockSET.adjustRpOfOrigin(configParams.configParams.rpSplit),
-          mockSET.fillStaticFields(),
-        ]);
-        await mockSET.adjustEvent(configParams.configParams.eventTypeSplit);
+        let pairwiseId = await mockSET.adjustRpOfOrigin(
+          configParams.configParams.rpSplit,
+        );
+        await mockSET.fillStaticFields();
+        await mockSET.adjustEvent(
+          configParams.configParams.eventTypeSplit,
+          pairwiseId,
+        );
         await mockSET.addError(configParams.configParams.errorRate);
         setArray.push(
           //Adds JSON-formatted SET to SET array (for sending to SQS queue)

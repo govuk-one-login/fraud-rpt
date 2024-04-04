@@ -1,4 +1,4 @@
-import { expect, describe, it } from "@jest/globals";
+import { describe, expect, it } from "@jest/globals";
 import { ConfigParams } from "./ConfigParams";
 import { ErrorMessages } from "../../enums/ErrorMessages";
 import {
@@ -21,8 +21,8 @@ describe("configParams", () => {
     const configParams: ConfigParams = new ConfigParams(environment);
     const schema = {
       numMessages: expect.any(Number),
-      rpSplit: expect.any(Array<number>),
-      eventTypeSplit: expect.any(Array<number>),
+      rpSplit: expect.any(Array<Number>),
+      eventTypeSplit: expect.any(Array<Number>),
       errorRate: expect.any(Number),
     };
     expect(configParams.configParams).toMatchObject(schema);
@@ -60,7 +60,7 @@ describe("parseAllApiParams", () => {
     expect(configParams.configParams.numMessages).toStrictEqual(20);
     expect(configParams.configParams.rpSplit).toStrictEqual([0.25, 0.5, 0.25]);
     expect(configParams.configParams.eventTypeSplit).toStrictEqual([
-      1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     ]);
     expect(configParams.configParams.errorRate).toStrictEqual(0.2);
     expect(configParams.configParams.inboundEndpointURL).toStrictEqual(
@@ -77,7 +77,7 @@ describe("parseAllApiParams", () => {
     expect(configParams.configParams.numMessages).toStrictEqual(10);
     expect(configParams.configParams.rpSplit).toStrictEqual([1, 0, 0]);
     expect(configParams.configParams.eventTypeSplit).toStrictEqual([
-      1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     ]);
     expect(configParams.configParams.errorRate).toStrictEqual(0);
     expect(configParams.configParams.inboundEndpointURL).toStrictEqual(
@@ -131,7 +131,7 @@ describe("parseNumMessages", () => {
   });
 
   it.each(["5", [[1, 1]]])(
-    "should reject inproper entries",
+    "should reject improper entries",
     async (invalidEntry) => {
       const configParams: ConfigParams = new ConfigParams(environment);
       await expect(() =>
@@ -164,7 +164,7 @@ describe("parseRpSplit", () => {
   });
 
   it.each([1, [[1]], "[1,1]", [["1", "1"]], [[1, 1, 1]]])(
-    "should reject inproper enties",
+    "should reject improper entities",
     async (invalidEntry) => {
       const configParams: ConfigParams = new ConfigParams(environment);
       await expect(() =>
@@ -183,7 +183,7 @@ describe("parseEventTypeSplit", () => {
   it.each([
     [
       SampleConfigs.ValidEventTypeSplitConfigEvent.eventTypeSplit,
-      [0.25, 0.25, 0.25, 0.25, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0.25, 0.25, 0.25, 0.25, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     ],
   ])(
     "should change the parameters for a valid event property",
@@ -200,14 +200,14 @@ describe("parseEventTypeSplit", () => {
     const configParams: ConfigParams = new ConfigParams(environment);
     await configParams.parseEventTypeSplit({});
     expect(configParams.configParams.eventTypeSplit).toStrictEqual([
-      1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     ]);
   });
 
   it.each([
     SampleConfigs.InvalidEventTypeSplitConfigEventOne.eventTypeSplit,
     SampleConfigs.InvalidEventTypeSplitConfigEventTwo.eventTypeSplit,
-  ])("should reject inproper enties", async (invalidEntry) => {
+  ])("should reject improper entities", async (invalidEntry) => {
     const configParams: ConfigParams = new ConfigParams(environment);
     await expect(() =>
       configParams.parseEventTypeSplit({ eventTypeSplit: invalidEntry }),
@@ -237,7 +237,7 @@ describe("parseErrorRate", () => {
   });
 
   it.each([2, -2, "0.2", [2]])(
-    "should reject inproper enties",
+    "should reject improper entities",
     async (invalidEntry) => {
       const configParams: ConfigParams = new ConfigParams(environment);
       await expect(() =>
@@ -282,7 +282,7 @@ describe("parseInboundEndpointURL", () => {
   );
 
   it.each([2, -2, "0.2", [2]])(
-    "should reject inproper enties",
+    "should reject improper entities",
     async (invalidEntry) => {
       const configParams: ConfigParams = new ConfigParams(environment);
       await expect(() =>
