@@ -1,16 +1,18 @@
 # The Relying Party Transmitter
 
-This is the source code for the Relying Party Transmitter (RPT) application. The RPT demonstrates how serverless functions can send a [Security Event Token (SET)](https://datatracker.ietf.org/doc/html/rfc8417) from a transmitter, such as a Relying Party (RP), to a [Shared Signals Framework (SSF)](https://sharedsignals.guide/) receiver.
+This is the source code for the Relying Party Transmitter (RPT) application. The RPT application demonstrates how serverless functions can send a [Security Event Token](https://datatracker.ietf.org/doc/html/rfc8417) (SET) from a transmitter, such as a Relying Party (RP), to a [Shared Signals Framework](https://sharedsignals.guide/) (SSF) receiver.
+
 This page explains:
 
 - [the logic behind the serverless functions](#understanding-the-rpt-functions)
 - [how to build and deploy the RPT using AWS](#building-and-deploying-the-rpt-using-aws)
 
-You can [read more about the responsibilities of receivers and transmitters, the SET, and how to manually recreate the transmitter function](./receiver_guidance.md).
+You can [read more about the responsibilities of receivers and transmitters, the SET, and how to manually recreate the transmitter function](./transmitter_guidance.md).
 
 ## Understanding the RPT functions
 
 This section explains how the serverless functions implemented in the RPT application work.
+
 The RPT uses:
 
 - [a transmitter function](#transmitter-function) - you must implement the transmitter function to send the SET to the SSF receiver
@@ -18,24 +20,22 @@ The RPT uses:
 
 ### Transmitter function
 
-The transmitter function is triggered when it receives a a defined number of SET messages. The transmitter function signs each SET and forwards each SET message to the SSF receiver as an HTTP `POST`.
+The transmitter function is triggered when it receives a defined number of SET messages. The transmitter function signs each SET and forwards each SET message to the SSF receiver as an HTTP `POST`.
 
 The SSF team will send you:
 
-- a client ID/secret pair , to request an authentication token
+- a client ID/secret pair, to request an authentication token
 - the full URL of the /authorize endpoint, to request an authentication token
+- the full URL of the inbound SSF framework endpoint to send the SET
 
 You must send the SSF team:
 
-- the public key that corresponds with the private key used to sign the SET, so the SSF team can read the SET
-- the IP address that sends the request, so it can be added to their allowlist
+- the public key that corresponds with the private key used to sign the SET, so the SSF team can check the signature of the SET
+- the IP address that sends the request, so the SSF team can add it to their allowlist
 
-This is an overview of the process:
+The payload of the `POST` request is a signed SET, using a private key to generate the signature. This is a JSON Web Token (JWT) object in the JSON Web Signature (JWS) Compact Serialisation format. The receiver verifies the signature using the corresponding public key.
 
-1. Signs the SET, using a private key to generate the signature. The payload of the `POST` request is a JSON Web Signature (JWS) object using the signature and signed SET. The receiver verifies the signature using the corresponding public key.
-1. Gets an authorization token by sending a request to the /authorize endpoint with the RP’s client ID and secret.
-1. Generates the request header with an authorisation token.
-1. Sends the request to the receiver.
+The header of the `POST` request is authorisation token. The transmitter function gets an authorisation token by sending a request to the /authorize endpoint with the RP’s client ID and secret.
 
 ### Helper functions
 
@@ -48,7 +48,7 @@ There are 2 helper functions:
 
 #### Generator function
 
-The generator function generates a series of SET messages to send to the transmitter function. It is triggered by an API call.
+The generator function generates a series of SET messages to send to the transmitter function. It is triggered by an API call. The infrastructure template for the API server is also included as part of the RPT application.
 
 This function:
 
@@ -57,12 +57,42 @@ This function:
 - regenerates and resends any SET messages that failed to send, if required
 - logs the number of successful and failed SET messages along with their parameters
 
-The parameters you send to the API set:
+The parameters you send to the API endpoint set:
 
-- the number of messages to send
+- the number of SET messages to send
 - the ratio of each event type
 - the error rate for generating a valid SET
 - which SSF pipeline endpoint to use
+
+You can find the full URL for the API endpoint using the deployment logs. The API endpoint is described in the logs as the APIGateway URL.
+
+An example API request to trigger the generator function:
+
+```json
+{
+  "numMessages": 1,
+  "rpSplit": [1, 0, 0],
+  "eventTypeSplit": {
+    "accountBlock": 1,
+    "accountConcern": 1,
+    "accountPurged": 1,
+    "accountCredentialChangeRequired": 0,
+    "accountDisabled": 0,
+    "accountEnabled": 0,
+    "credentialCompromise": 0,
+    "deviceConcern": 1,
+    "optIn": 0,
+    "optOutInitiated": 0,
+    "optOutCancelled": 0,
+    "optOutEffective": 0,
+    "recoveryActivated": 0,
+    "recoveryInformationChanged": 0,
+    "sessionsRevoked": 0
+  },
+  "errorRate": 0,
+  "inboundEndpointURL": "inbound-ssf.development.account.gov.uk"
+}
+```
 
 AWS Simple Queue Service (SQS) queues are used between the generator and transmitter functions. If a SET message fails to send on the first attempt, AWS SQS reattempts to send the SET message until it reaches the limit, before transferring the SET message to the associated AWS Dead Letter Queue (DLQ). The reattempt limit is set in the queue redrive policy.
 
@@ -70,7 +100,7 @@ AWS Simple Queue Service (SQS) queues are used between the generator and transmi
 
 The public key function returns the public key from a key store and then logs the request. This function is triggered by an API call. This public key is used by the receiver to verify the SET.
 
-The RPT Public key function returns the public key as a base64-encoded `.pem` file.
+The RPT public key function returns the public key as a base64-encoded `.pem` file.
 
 ## Building and deploying the RPT using AWS
 
@@ -89,7 +119,7 @@ To build the application you’ll need:
 - an AWS Account
 - an AWS Identity and Access Management (IAM) administrator user account
 - an AWS access key pair
-- [a GitHub Classic Personal Access Token (PAT)](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) with at least the `read:packages` permission so you can download the application dependencies from GitHub
+- [a GitHub Classic Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) (PAT) with at least the `read:packages` permission so you can download the application dependencies from GitHub
 
 You must build the application before you can deploy it in AWS. To build the application, you’ll need to install:
 
@@ -146,8 +176,11 @@ We recommend these tools if you intend to update the RPT or if you’re writing 
 - [Node.js](https://nodejs.org/en/) to build the serverless functions in TypeScript
 - [Docker](https://docs.docker.com/desktop/) to test the build action locally with AWS SAM
 - [pre-commit](https://pre-commit.com) to run the project's recommended pre-commit hooks - this if required if making changes to this repository
-  Configure the recommended developer tools
-  To configure the tools:
+
+### Configure the recommended developer tools
+
+To configure the tools:
+
 - run `pre-commit install` to install the project's pre-commit hooks to improve security and write cleaner code - you must do this if you’re making changes to this repository
 - install the [AWS Toolkit extension for VS Code](https://docs.aws.amazon.com/toolkit-for-vscode/latest/userguide/welcome.html) for a more integrated experience with AWS
   - connect the AWS toolkit to your AWS account by running `aws configure sso`
