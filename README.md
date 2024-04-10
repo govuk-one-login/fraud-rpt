@@ -25,7 +25,7 @@ The transmitter function is triggered when it receives a defined number of SET m
 The SSF team will send you:
 
 - a client ID/secret pair, to request an authentication token
-- the full URL of the /authorize endpoint, to request an authentication token
+- the full URL of the `/authorize` endpoint, to request an authentication token
 - the full URL of the inbound SSF framework endpoint to send the SET
 
 You must send the SSF team:
@@ -35,7 +35,7 @@ You must send the SSF team:
 
 The payload of the `POST` request is a signed SET, using a private key to generate the signature. This is a JSON Web Token (JWT) object in the JSON Web Signature (JWS) Compact Serialisation format. The receiver verifies the signature using the corresponding public key.
 
-The header of the `POST` request is authorisation token. The transmitter function gets an authorisation token by sending a request to the /authorize endpoint with the RP’s client ID and secret.
+The header of the `POST` request is authorisation token. The transmitter function gets an authorisation token by sending a request to the `/authorize` endpoint with the RP’s client ID and secret.
 
 ### Helper functions
 
