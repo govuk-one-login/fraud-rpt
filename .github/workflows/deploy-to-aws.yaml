@@ -55,5 +55,5 @@ jobs:
           parameters: |
             Environment=development
             LocalName=default
-            VpcStackName=rpt-vpc
+            VpcStackName=vpc
             BranchName=${{ github.head_ref || github.ref_name }}
