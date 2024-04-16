@@ -22,6 +22,10 @@ Parameters:
     Description: >
       The ARN of the permissions boundary to apply to any role created by the template
     Default: "none"
+  VpcStackName:
+    Type: "String"
+    Description: "The name of the stack that defines the VPC to use"
+    Default: "vpc"
 
 Conditions:
   UseCodeSigning: !Not [!Equals [!Ref CodeSigningConfigArn, "none"]]
@@ -108,6 +112,12 @@ Resources:
       Handler: handler.handler
       MemorySize: 128
       ReservedConcurrentExecutions: 10
+      VpcConfig:
+        SubnetIds:
+          - Fn::ImportValue: !Sub ${VpcStackName}-ProtectedSubnetIdA
+          - Fn::ImportValue: !Sub ${VpcStackName}-ProtectedSubnetIdB
+        SecurityGroupIds:
+          - Fn::ImportValue: !Sub ${VpcStackName}-AWSServicesEndpointSecurityGroupId
       Events:
         ActivationApi:
           Type: Api
@@ -196,6 +206,12 @@ Resources:
       CodeUri: src/lambdas/TransmitterLambda
       Handler: handler.handler
       ReservedConcurrentExecutions: 10
+      VpcConfig:
+        SubnetIds:
+          - Fn::ImportValue: !Sub ${VpcStackName}-ProtectedSubnetIdA
+          - Fn::ImportValue: !Sub ${VpcStackName}-ProtectedSubnetIdB
+        SecurityGroupIds:
+          - Fn::ImportValue: !Sub ${VpcStackName}-AWSServicesEndpointSecurityGroupId
       Events:
         ValidatorQueueEvent:
           Type: SQS
