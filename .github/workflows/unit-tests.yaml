@@ -9,6 +9,7 @@ concurrency:
 permissions:
   id-token: write
   contents: read
+  packages: read
 
 jobs:
   jest-tests-job:
@@ -32,4 +33,6 @@ jobs:
       - name: Run Tests
         run: |
           npm ci
-          npm test --passWithNoTests
+          npm test
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
