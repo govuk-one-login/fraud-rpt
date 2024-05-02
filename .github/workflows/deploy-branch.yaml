@@ -11,6 +11,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
+      packages: read
     with:
       environment: development
       sam-template-file: template-rpt.yaml

@@ -1,7 +1,7 @@
 import { ErrorMessages } from "../../enums/ErrorMessages";
 import { ActivationApiConfigParams } from "../../interfaces/interfaces";
 import { MockRPs } from "../MockSET/MockRPs";
-import { validEventKeys } from "../../enums/eventsEnums";
+import { EventTypes, validEventKeys } from "../../enums/eventsEnums";
 import { InboundPipelineURLs } from "../../enums/InboundPipelineURLs";
 
 export class ConfigParams {
@@ -12,7 +12,10 @@ export class ConfigParams {
     this.configParams = {
       numMessages: 10,
       rpSplit: [1, 0, 0],
-      eventTypeSplit: Array(12).fill(1, 0).fill(0, 1),
+      eventTypeSplit: [
+        1,
+        ...Array(Object.keys(EventTypes).length - 1).fill(0, 0),
+      ],
       errorRate: 0,
       inboundEndpointURL: InboundPipelineURLs[environment],
     };
