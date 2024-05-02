@@ -1,8 +1,8 @@
 import { ErroneousJsonMockSET, JsonMockSET } from "../../interfaces/interfaces";
 import { MockRPs } from "./MockRPs";
+import { PopulatedSetService } from "@govuk-one-login/events/services/populated-set/populated-set";
 import { EventTypes, validEventKeys } from "../../enums/eventsEnums";
-import { EventMapping } from "../MockEvents/EventMapping";
-import { BaseEvent } from "../MockEvents/events/BaseEvent";
+
 export class MockSET {
   mockSET: JsonMockSET | ErroneousJsonMockSET;
 
@@ -12,9 +12,6 @@ export class MockSET {
       jti: "1111AAAA",
       iat: 0,
       aud: "https://inbound.ssf.account.gov.uk/",
-      sub: "RP1USER1",
-      txn: "2222BBBB",
-      toe: 10,
       events: "No event supplied",
     };
   }
@@ -25,8 +22,6 @@ export class MockSET {
   public async fillStaticFields(): Promise<void> {
     this.mockSET.jti = await this.generateUniqueID();
     this.mockSET.iat = new Date().getTime();
-    this.mockSET.txn = await this.generateUniqueID();
-    this.mockSET.toe = await this.generateTimeOfEvent();
   }
 
   /**
@@ -57,24 +52,11 @@ export class MockSET {
   }
 
   /**
-   * Gets the current time and takes away up to 24 hours worth of milliseconds (86400000)
-   *
-   * @returns a random time from the last 24 hours
-   */
-  public async generateTimeOfEvent(): Promise<number> {
-    const currentTime: number = new Date().getTime();
-    const twentyFourHoursInMilliSeconds: number = 86400000;
-    return (
-      currentTime - Math.round(Math.random() * twentyFourHoursInMilliSeconds)
-    );
-  }
-
-  /**
    * Change the values relevent to the rp of origin
    *
    * @param rpSplit is the probability ratio of messages to come from the 3 mock rps
    */
-  public async adjustRpOfOrigin(rpSplit: Array<number>): Promise<void> {
+  public async adjustRpOfOrigin(rpSplit: Array<number>): Promise<string> {
     const MockRPsKeys: Array<keyof typeof MockRPs> = Object.keys(
       MockRPs,
     ) as unknown as Array<keyof typeof MockRPs>;
@@ -83,7 +65,7 @@ export class MockSET {
       keyof typeof MockRPs
     >(MockRPsKeys, rpSplit);
 
-    this.mockSET.iss = MockRPs[chosenRP].publicKeyURL;
+    this.mockSET.iss = MockRPs[chosenRP].issuer;
 
     const userPairwiseIDs = MockRPs[chosenRP].userPairwiseIDs;
     const userPairwiseIDsKeys: Array<string> = Object.keys(userPairwiseIDs);
@@ -91,26 +73,28 @@ export class MockSET {
       Math.floor(Math.random() * userPairwiseIDsKeys.length)
     ] as keyof typeof userPairwiseIDs;
 
-    this.mockSET.sub = userPairwiseIDs[chosenUser];
+    return userPairwiseIDs[chosenUser];
   }
 
   /**
    * Change the event field
    *
    * @param eventSplit is the probability ratio of events types to be sent
+   * @param pairwiseId the pairwise ID of the user
    */
-  public async adjustEvent(eventSplit: Array<number>): Promise<void> {
+  public async adjustEvent(
+    eventSplit: Array<number>,
+    pairwiseId: string,
+  ): Promise<void> {
     const chosenEventType: EventTypes =
       await this.weightedChoiceFromArray<EventTypes>(
         validEventKeys,
         eventSplit,
       );
-
-    const eventObject: BaseEvent = EventMapping[chosenEventType](
-      this.mockSET as JsonMockSET,
+    this.mockSET.events = await PopulatedSetService.getPopulatedSetNow(
+      chosenEventType,
+      pairwiseId,
     );
-
-    this.mockSET.events = await eventObject.constructEvent();
   }
 
   /**
@@ -128,16 +112,7 @@ export class MockSET {
       return;
     }
 
-    const setFields: Array<string> = [
-      "iss",
-      "iat",
-      "jti",
-      "aud",
-      "sub",
-      "txn",
-      "toe",
-      "events",
-    ];
+    const setFields: Array<string> = ["iss", "iat", "jti", "aud", "events"];
     const fieldToError: string =
       setFields[Math.floor(Math.random() * setFields.length)];
 
@@ -157,18 +132,6 @@ export class MockSET {
       }
       case "aud": {
         this.mockSET.aud = undefined;
-        break;
-      }
-      case "sub": {
-        this.mockSET.sub = undefined;
-        break;
-      }
-      case "txn": {
-        this.mockSET.txn = undefined;
-        break;
-      }
-      case "toe": {
-        this.mockSET.toe = undefined;
         break;
       }
       case "events": {

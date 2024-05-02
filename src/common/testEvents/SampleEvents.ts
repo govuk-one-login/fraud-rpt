@@ -80,11 +80,14 @@ export const SampleConfigs = {
   },
   ValidEventTypeSplitConfigEvent: {
     eventTypeSplit: {
+      accountBlock: 0,
+      accountConcern: 0,
       accountPurged: 1,
       accountCredentialChangeRequired: 1,
       accountDisabled: 1,
       accountEnabled: 1,
       credentialCompromise: 0,
+      deviceConcern: 0,
       optIn: 0,
       optOutInitiated: 0,
       optOutCancelled: 0,
@@ -101,11 +104,14 @@ export const SampleConfigs = {
     numMessages: 20,
     rpSplit: [1, 2, 1],
     eventTypeSplit: {
+      accountBlock: 0,
+      accountConcern: 0,
       accountPurged: 1,
       accountCredentialChangeRequired: 0,
       accountDisabled: 0,
       accountEnabled: 0,
       credentialCompromise: 0,
+      deviceConcern: 0,
       optIn: 0,
       optOutInitiated: 0,
       optOutCancelled: 0,
@@ -125,11 +131,14 @@ export const SampleConfigs = {
   },
   InvalidEventTypeSplitConfigEventOne: {
     eventTypeSplit: {
+      accountBlock: 0,
+      accountConcern: 0,
       accountPurged: 1,
       accountCredentialChangeRequired: 0,
       accountDisabled: 0,
       accountEnabled: 0,
       credentialCompromise: 0,
+      deviceConcern: 0,
       optIn: 0,
       optOutInitiated: 0,
       optOutCancelled: 0,
@@ -140,11 +149,14 @@ export const SampleConfigs = {
   },
   InvalidEventTypeSplitConfigEventTwo: {
     eventTypeSplit: {
+      accountBlock: 0,
+      accountConcern: 0,
       accountPurged: "1",
       accountCredentialChangeRequired: 1,
       accountDisabled: 1,
       accountEnabled: 1,
       credentialCompromise: 0,
+      deviceConcern: 0,
       optIn: 0,
       optOutInitiated: 0,
       optOutCancelled: 0,
@@ -171,11 +183,14 @@ export const SampleConfigs = {
   InvalidPartialTwoConfigEvent: {
     rpSplit: "[1, 2, 1, 1]",
     eventTypeSplit: {
+      accountBlock: 0,
+      accountConcern: 0,
       accountPurged: "1",
       accountCredentialChangeRequired: 0,
       accountDisabled: 0,
       accountEnabled: 0,
       credentialCompromise: 0,
+      deviceConcern: 0,
       optIn: 0,
       optOutInitiated: 0,
       optOutCancelled: 0,
@@ -236,23 +251,23 @@ export const SampleEvents = {
 export const ExpectedResponses = {
   NoConfigEvent: {
     statusCode: 202,
-    body: 'Generation run results: {"messagesSent":10,"sendAttempts":1,"unsentMessages":0,"totalFailedMessageAttempts":0,"configParams":{"numMessages":10,"rpSplit":[1,0,0],"eventTypeSplit":[1,0,0,0,0,0,0,0,0,0,0,0],"errorRate":0,"inboundEndpointURL":"https://inbound-ssf.dev.account.gov.uk"}}',
+    body: 'Generation run results: {"messagesSent":10,"sendAttempts":1,"unsentMessages":0,"totalFailedMessageAttempts":0,"configParams":{"numMessages":10,"rpSplit":[1,0,0],"eventTypeSplit":[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"errorRate":0,"inboundEndpointURL":"https://inbound-ssf.dev.account.gov.uk"}}',
   },
   ValidNumMessagesConfigEvent: {
     statusCode: 202,
-    body: 'Generation run results: {"messagesSent":10,"sendAttempts":1,"unsentMessages":0,"totalFailedMessageAttempts":0,"configParams":{"numMessages":5,"rpSplit":[1,0,0],"eventTypeSplit":[1,0,0,0,0,0,0,0,0,0,0,0],"errorRate":0,"inboundEndpointURL":"https://inbound-ssf.dev.account.gov.uk"}}', // Says sent 10 as mocked to return 10. numMessages still gets changed to 5
+    body: 'Generation run results: {"messagesSent":10,"sendAttempts":1,"unsentMessages":0,"totalFailedMessageAttempts":0,"configParams":{"numMessages":5,"rpSplit":[1,0,0],"eventTypeSplit":[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"errorRate":0,"inboundEndpointURL":"https://inbound-ssf.dev.account.gov.uk"}}', // Says sent 10 as mocked to return 10. numMessages still gets changed to 5
   },
   ValidRpSplitConfigEvent: {
     statusCode: 202,
-    body: 'Generation run results: {"messagesSent":10,"sendAttempts":1,"unsentMessages":0,"totalFailedMessageAttempts":0,"configParams":{"numMessages":10,"rpSplit":[0.25,0.5,0.25],"eventTypeSplit":[1,0,0,0,0,0,0,0,0,0,0,0],"errorRate":0,"inboundEndpointURL":"https://inbound-ssf.dev.account.gov.uk"}}',
+    body: 'Generation run results: {"messagesSent":10,"sendAttempts":1,"unsentMessages":0,"totalFailedMessageAttempts":0,"configParams":{"numMessages":10,"rpSplit":[0.25,0.5,0.25],"eventTypeSplit":[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"errorRate":0,"inboundEndpointURL":"https://inbound-ssf.dev.account.gov.uk"}}',
   },
   ValidEventTypeSplitConfigEvent: {
     statusCode: 202,
-    body: 'Generation run results: {"messagesSent":10,"sendAttempts":1,"unsentMessages":0,"totalFailedMessageAttempts":0,"configParams":{"numMessages":10,"rpSplit":[1,0,0],"eventTypeSplit":[0.25,0.25,0.25,0.25,0,0,0,0,0,0,0,0],"errorRate":0,"inboundEndpointURL":"https://inbound-ssf.dev.account.gov.uk"}}',
+    body: 'Generation run results: {"messagesSent":10,"sendAttempts":1,"unsentMessages":0,"totalFailedMessageAttempts":0,"configParams":{"numMessages":10,"rpSplit":[1,0,0],"eventTypeSplit":[0,0,0.25,0.25,0.25,0.25,0,0,0,0,0,0,0,0,0],"errorRate":0,"inboundEndpointURL":"https://inbound-ssf.dev.account.gov.uk"}}',
   },
   ValidErrorRateConfigEvent: {
     statusCode: 202,
-    body: 'Generation run results: {"messagesSent":10,"sendAttempts":1,"unsentMessages":0,"totalFailedMessageAttempts":0,"configParams":{"numMessages":10,"rpSplit":[1,0,0],"eventTypeSplit":[1,0,0,0,0,0,0,0,0,0,0,0],"errorRate":0.2,"inboundEndpointURL":"https://inbound-ssf.dev.account.gov.uk"}}',
+    body: 'Generation run results: {"messagesSent":10,"sendAttempts":1,"unsentMessages":0,"totalFailedMessageAttempts":0,"configParams":{"numMessages":10,"rpSplit":[1,0,0],"eventTypeSplit":[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"errorRate":0.2,"inboundEndpointURL":"https://inbound-ssf.dev.account.gov.uk"}}',
   },
   InvalidNumMessagesConfigEvent: {
     statusCode: 500,
@@ -272,7 +287,7 @@ export const ExpectedResponses = {
   },
   ValidFullConfigEvent: {
     statusCode: 202,
-    body: 'Generation run results: {"messagesSent":20,"sendAttempts":1,"unsentMessages":0,"totalFailedMessageAttempts":0,"configParams":{"numMessages":20,"rpSplit":[0.25,0.5,0.25],"eventTypeSplit":[1,0,0,0,0,0,0,0,0,0,0,0],"errorRate":0.2,"inboundEndpointURL":"testUrl.gov.uk"}}',
+    body: 'Generation run results: {"messagesSent":20,"sendAttempts":1,"unsentMessages":0,"totalFailedMessageAttempts":0,"configParams":{"numMessages":20,"rpSplit":[0.25,0.5,0.25],"eventTypeSplit":[0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],"errorRate":0.2,"inboundEndpointURL":"testUrl.gov.uk"}}',
   },
   InvalidFullConfigEvent: {
     statusCode: 500,
@@ -288,10 +303,10 @@ export const ExpectedResponses = {
   },
   ErrorRetryTestingEventSuccessful: {
     statusCode: 202,
-    body: 'Generation run results: {"messagesSent":5,"sendAttempts":3,"unsentMessages":0,"totalFailedMessageAttempts":4,"configParams":{"numMessages":5,"rpSplit":[1,0,0],"eventTypeSplit":[1,0,0,0,0,0,0,0,0,0,0,0],"errorRate":0,"inboundEndpointURL":"https://inbound-ssf.dev.account.gov.uk"}}',
+    body: 'Generation run results: {"messagesSent":5,"sendAttempts":3,"unsentMessages":0,"totalFailedMessageAttempts":4,"configParams":{"numMessages":5,"rpSplit":[1,0,0],"eventTypeSplit":[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"errorRate":0,"inboundEndpointURL":"https://inbound-ssf.dev.account.gov.uk"}}',
   },
   ErrorRetryTestingEventMaxRetry: {
     statusCode: 202,
-    body: 'Generation run results: {"messagesSent":4,"sendAttempts":5,"unsentMessages":1,"totalFailedMessageAttempts":5,"configParams":{"numMessages":5,"rpSplit":[1,0,0],"eventTypeSplit":[1,0,0,0,0,0,0,0,0,0,0,0],"errorRate":0,"inboundEndpointURL":"https://inbound-ssf.dev.account.gov.uk"}}',
+    body: 'Generation run results: {"messagesSent":4,"sendAttempts":5,"unsentMessages":1,"totalFailedMessageAttempts":5,"configParams":{"numMessages":5,"rpSplit":[1,0,0],"eventTypeSplit":[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"errorRate":0,"inboundEndpointURL":"https://inbound-ssf.dev.account.gov.uk"}}',
   },
 };
