@@ -46,15 +46,67 @@ Globals:
     Timeout: 10
     Environment:
       Variables:
+        AWS_LAMBDA_EXEC_WRAPPER: /opt/dynatrace
         TRANSMITTER_QUEUE_URL: !Ref SETTransmitterQueue
         LOG_LEVEL: INFO
         POWERTOOLS_SERVICE_NAME: rpt
         POWERTOOLS_METRICS_NAMESPACE: !Sub ${Environment}-rpt
+        DT_CONNECTION_AUTH_TOKEN: !Sub
+          - "{{resolve:secretsmanager:${SecretArn}:SecretString:DT_CONNECTION_AUTH_TOKEN}}"
+          - SecretArn:
+              !FindInMap [
+                EnvironmentConfiguration,
+                !Ref Environment,
+                dynatraceSecretArn,
+              ]
+        DT_CONNECTION_BASE_URL: !Sub
+          - "{{resolve:secretsmanager:${SecretArn}:SecretString:DT_CONNECTION_BASE_URL}}"
+          - SecretArn:
+              !FindInMap [
+                EnvironmentConfiguration,
+                !Ref Environment,
+                dynatraceSecretArn,
+              ]
+        DT_CLUSTER_ID: !Sub
+          - "{{resolve:secretsmanager:${SecretArn}:SecretString:DT_CLUSTER_ID}}"
+          - SecretArn:
+              !FindInMap [
+                EnvironmentConfiguration,
+                !Ref Environment,
+                dynatraceSecretArn,
+              ]
+        DT_LOG_COLLECTION_AUTH_TOKEN: !Sub
+          - "{{resolve:secretsmanager:${SecretArn}:SecretString:DT_LOG_COLLECTION_AUTH_TOKEN}}"
+          - SecretArn:
+              !FindInMap [
+                EnvironmentConfiguration,
+                !Ref Environment,
+                dynatraceSecretArn,
+              ]
+        DT_TENANT: !Sub
+          - "{{resolve:secretsmanager:${SecretArn}:SecretString:DT_TENANT}}"
+          - SecretArn:
+              !FindInMap [
+                EnvironmentConfiguration,
+                !Ref Environment,
+                dynatraceSecretArn,
+              ]
+        DT_OPEN_TELEMETRY_ENABLE_INTEGRATION: "true"
+    Layers:
+      - !Sub
+        - "{{resolve:secretsmanager:${SecretArn}:SecretString:NODEJS_LAYER}}"
+        - SecretArn:
+            !FindInMap [
+              EnvironmentConfiguration,
+              !Ref Environment,
+              dynatraceSecretArn,
+            ]
 
 Mappings:
   ##############################################################
   # JWS Signing
   ##############################################################
+
   JWSSignRoleARNs:
     Environment:
       development: "arn:aws:iam::604477301065:role/JWS-Sign-Role"
@@ -66,6 +118,22 @@ Mappings:
       development: "arn:aws:kms:eu-west-2:604477301065:key/89a56ae8-0cc4-451f-ab40-7a712b11c27f"
       build: "arn:aws:kms:eu-west-2:250353618339:key/6d4d235d-331f-438b-8404-83700ca78e18"
       staging: "arn:aws:kms:eu-west-2:861348360548:key/b3b5e606-007d-4756-b612-dfdc67403d0e"
+
+  ##############################################################
+  # Dynatrace
+  ##############################################################
+
+  EnvironmentConfiguration:
+    development:
+      dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
+    build:
+      dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
+    staging:
+      dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
+    integration:
+      dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
+    production:
+      dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceProductionVariables
 
 Resources:
   ##############################################################
