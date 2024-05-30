@@ -1,13 +1,13 @@
 # The Relying Party Transmitter
 
-This is the source code for the Relying Party Transmitter (RPT) application. The RPT application demonstrates how serverless functions can send a [Security Event Token](https://datatracker.ietf.org/doc/html/rfc8417) (SET) from a transmitter, such as a Relying Party (RP), to a [Shared Signals Framework](https://sharedsignals.guide/) (SSF) receiver.
+This is the source code for the Relying Party Transmitter (RPT) application. The RPT application demonstrates how serverless functions can send a message from a transmitter, such as a Relying Party (RP), to our [Shared Signals Framework](https://sharedsignals.guide/) (SSF) receiver.
 
 This page explains:
 
 - [the logic behind the serverless functions](#understanding-the-rpt-functions)
 - [how to build and deploy the RPT using AWS](#building-and-deploying-the-rpt-using-aws)
 
-You can [read more about the responsibilities of receivers and transmitters, the SET, and how to manually recreate the transmitter function](./transmitter_guidance.md).
+You can [read more about the responsibilities of receivers and transmitters, the [Security Event Token](https://datatracker.ietf.org/doc/html/rfc8417) (SET) format, and how to manually recreate the transmitter function](./transmitter_guidance.md).
 
 ## Understanding the RPT functions
 
@@ -15,23 +15,23 @@ This section explains how the serverless functions implemented in the RPT applic
 
 The RPT uses:
 
-- [a transmitter function](#transmitter-function) - you must implement the transmitter function to send the SET to the SSF receiver
+- [a transmitter function](#transmitter-function) - you must implement the transmitter function to send the message to the receiver
 - [helper functions](#helper-functions) - you can use the helper functions to test the transmitter function
 
 ### Transmitter function
 
-The transmitter function is triggered when it receives a defined number of SET messages. The transmitter function signs each SET and forwards each SET message to the SSF receiver as an HTTP `POST`.
+The transmitter function is triggered when it receives a defined number of messages. The transmitter function signs the SET in each message and forwards each message to the receiver as an HTTP `POST`.
 
-The SSF team will send you:
+The shared signals team will send you:
 
 - a client ID/secret pair, to request an authentication token
 - the full URL of the `/authorize` endpoint, to request an authentication token
-- the full URL of the inbound SSF framework endpoint to send the SET
+- the full URL of the inbound shared signals endpoint to send the message
 
-You must send the SSF team:
+You must send the shared signals team:
 
-- the public key that corresponds with the private key used to sign the SET, so the SSF team can check the signature of the SET
-- the IP address that sends the request, so the SSF team can add it to their allowlist
+- the public key that corresponds with the private key used to sign the SET, so the shared signals team can check the signature of the message
+- the IP address that sends the request, so the shared signals team can add it to their allowlist
 
 The payload of the `POST` request is a signed SET, using a private key to generate the signature. This is a JSON Web Token (JWT) object in the JSON Web Signature (JWS) Compact Serialisation format. The receiver verifies the signature using the corresponding public key.
 
@@ -43,26 +43,26 @@ Helper functions test the behaviour of the transmitter function in the applicati
 
 There are 2 helper functions:
 
-- [the generator function](#generator-function) generates test cases of SET messages
+- [the generator function](#generator-function) generates test cases of messages
 - [the public key function](#public-key-function) simulates an RP's endpoint for serving their public key
 
 #### Generator function
 
-The generator function generates a series of SET messages to send to the transmitter function. It is triggered by an API call. The infrastructure template for the API server is also included as part of the RPT application.
+The generator function generates a series of messages to send to the transmitter function. It is triggered by an API call. The infrastructure template for the API server is also included as part of the RPT application.
 
 This function:
 
-- tests that the SSF receiver endpoint is available
-- sends batches of SET messages to the transmitter function
-- regenerates and resends any SET messages that failed to send, if required
-- logs the number of successful and failed SET messages along with their parameters
+- tests that the shared signals receiver endpoint is available
+- sends batches of messages to the transmitter function
+- regenerates and resends any messages that failed to send, if required
+- logs the number of successful and failed messages along with their parameters
 
 The parameters you send to the API endpoint set:
 
-- the number of SET messages to send
+- the number of messages to send
 - the ratio of each event type
 - the error rate for generating a valid SET
-- which SSF pipeline endpoint to use
+- which shared signals pipeline endpoint to use
 
 You can find the full URL for the API endpoint using the deployment logs. The API endpoint is described in the logs as the APIGateway URL.
 
@@ -94,7 +94,7 @@ An example API request to trigger the generator function:
 }
 ```
 
-AWS Simple Queue Service (SQS) queues are used between the generator and transmitter functions. If a SET message fails to send on the first attempt, AWS SQS reattempts to send the SET message until it reaches the limit, before transferring the SET message to the associated AWS Dead Letter Queue (DLQ). The reattempt limit is set in the queue redrive policy.
+AWS Simple Queue Service (SQS) queues are used between the generator and transmitter functions. If a message fails to send on the first attempt, AWS SQS reattempts to send the message until it reaches the limit, before transferring the message to the associated AWS Dead Letter Queue (DLQ). The reattempt limit is set in the queue redrive policy.
 
 #### Public key function
 
