@@ -24,12 +24,12 @@ jobs:
       PRECOMMIT_OUTPUT: precommit.output
     steps:
       - name: Pull repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.11.6"
+          python-version: "3"
           cache-dependency-path: ./.github/workflows
           cache: "pip"
 
