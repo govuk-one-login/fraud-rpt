@@ -24,7 +24,7 @@ jobs:
       PRECOMMIT_OUTPUT: precommit.output
     steps:
       - name: Pull repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4
