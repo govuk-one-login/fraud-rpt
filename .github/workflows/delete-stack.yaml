@@ -15,7 +15,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Pull Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Assume AWS Role
         uses: aws-actions/configure-aws-credentials@v2
